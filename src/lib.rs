@@ -30,7 +30,7 @@ pub fn compile(input: &str) -> Result<Program, String> {
 }
 
 /// Runs the given Program using the provided Environment.
-pub fn run(program: Program, env: &Environment) -> Result<Object, String> {
+pub fn run(program: &Program, env: &Environment) -> Result<Object, String> {
     let mut vm = VM::new(program);
     vm.run(env)
 }
@@ -40,7 +40,7 @@ pub fn run(program: Program, env: &Environment) -> Result<Object, String> {
 /// In general, separate compilation and execution should be preferred.
 pub fn eval(input: &str, env: &Environment) -> Result<Object, String> {
     let program = compile(input)?;
-    run(program, env)
+    run(&program, env)
 }
 
 #[cfg(test)]
@@ -55,8 +55,8 @@ pub mod tests {
         env.set("str", "abc".into());
 
         let input = "2 gt 1 and str ew \"c\" and 0.5 in [\"a\", 0.5, true]";
-        let prog = compile(input).unwrap();
-        let result = run(prog, &env).unwrap();
+        let program = compile(input).unwrap();
+        let result = run(&program, &env).unwrap();
 
         assert!((result == true.into()))
     }

@@ -1,6 +1,6 @@
 use crate::{
     Environment, builtin,
-    code::{self, Instructions, Opcode},
+    code::{self, Opcode},
     compiler::Program,
     object::{self, Function, Object},
 };
@@ -9,22 +9,18 @@ use crate::{
 const STACK_SIZE: usize = 2048;
 
 /// The virtual machine that executes compiled bytecode.
-pub struct VM {
-    instructions: Instructions,
-    constants: Vec<Object>,
-    identifiers: Vec<String>,
+pub struct VM<'a> {
+    program: &'a Program,
     stack: Vec<Object>,
     sp: usize,
     last_popped_elem: Option<Object>,
 }
 
-impl VM {
+impl<'a> VM<'a> {
     /// Creates a new VM instance with the given program.
-    pub fn new(program: Program) -> Self {
+    pub fn new(program: &'a Program) -> Self {
         Self {
-            instructions: program.instructions,
-            constants: program.constants,
-            identifiers: program.identifiers,
+            program,
             stack: Vec::with_capacity(STACK_SIZE),
             sp: 0,
             last_popped_elem: None,
@@ -35,20 +31,20 @@ impl VM {
     pub fn run(&mut self, env: &Environment) -> Result<Object, String> {
         let mut ip = 0;
 
-        while ip < self.instructions.len() {
-            let op = Opcode::from(self.instructions[ip]);
+        while ip < self.program.instructions.len() {
+            let op = Opcode::from(self.program.instructions[ip]);
             ip += 1;
 
             match op {
                 // Constant & Identifier Loading
                 Opcode::Constant => {
                     let index = self.read_usize(&mut ip);
-                    let obj = self.constants[index].clone();
+                    let obj = self.program.constants[index].clone();
                     self.push(obj)?;
                 }
                 Opcode::Global => {
                     let index = self.read_usize(&mut ip);
-                    let ident = self.identifiers[index].clone();
+                    let ident = self.program.identifiers[index].clone();
                     self.execute_identifier(&ident, env)?;
                 }
 
@@ -134,14 +130,17 @@ impl VM {
 
     /// Reads a u8 value from the instructions at the given instruction pointer.
     fn read_u8(&self, ip: &mut usize) -> u8 {
-        let n = u8::from_be_bytes([self.instructions[*ip]]);
+        let n = u8::from_be_bytes([self.program.instructions[*ip]]);
         *ip += 1;
         n
     }
 
     /// Reads a usize value from the instructions at the given instruction pointer.
     fn read_usize(&self, ip: &mut usize) -> usize {
-        let n = u16::from_be_bytes([self.instructions[*ip], self.instructions[*ip + 1]]) as usize;
+        let n = u16::from_be_bytes([
+            self.program.instructions[*ip],
+            self.program.instructions[*ip + 1],
+        ]) as usize;
         *ip += 2;
         n
     }
@@ -175,7 +174,7 @@ impl VM {
     fn execute_member_operation(&mut self, ident_index: usize) -> Result<(), String> {
         let left = self.pop()?;
 
-        let ident = &self.identifiers[ident_index].clone();
+        let ident = &self.program.identifiers[ident_index].clone();
         let obj = match left {
             Object::Map(m) => match m.get(ident) {
                 Some(o) => o.clone(),
@@ -586,7 +585,7 @@ mod test {
                 }
             };
 
-            let mut vm = VM::new(program);
+            let mut vm = VM::new(&program);
             let result = vm.run(&env);
 
             if test.should_error {
@@ -614,7 +613,8 @@ mod test {
         let mut compiler = Compiler::new();
         compiler.compile(&expr).unwrap();
 
-        let mut vm = VM::new(compiler.program());
+        let program = compiler.program();
+        let mut vm = VM::new(&program);
         vm.run(env).unwrap()
     }
 }
