@@ -35,6 +35,14 @@ pub fn run(program: Program, env: &Environment) -> Result<Object, String> {
     vm.run(env)
 }
 
+/// Evaluates the given input string in the context of the provided Environment.
+/// This is a convenience function that compiles and runs the input.
+/// In general, separate compilation and execution should be preferred.
+pub fn eval(input: &str, env: &Environment) -> Result<Object, String> {
+    let program = compile(input)?;
+    run(program, env)
+}   
+
 #[cfg(test)]
 pub mod tests {
     pub mod fixtures;
@@ -51,5 +59,13 @@ pub mod tests {
         let result = run(prog, &env).unwrap();
 
         assert!((result == true.into()))
+    }
+
+    #[test]
+    fn test_eval() {
+        let mut env = Environment::default();
+        env.set("str", "abc".into());
+        let result = eval("2 gt 1 and str ew \"c\" and 0.5 in [\"a\", 0.5, true]", &env).unwrap();
+        assert!((result == true.into()));   
     }
 }
