@@ -45,7 +45,7 @@ impl Compiler {
     /// Compiles an expression node into bytecode.
     pub fn compile(&mut self, node: &Expression) -> Result<(), String> {
         self.compile_expression(node)?;
-        self.emit(Opcode::OpPop, &[]);
+        self.emit(Opcode::Pop, &[]);
         Ok(())
     }
 
@@ -53,53 +53,53 @@ impl Compiler {
     fn compile_expression(&mut self, expr: &Expression) -> Result<(), String> {
         match expr {
             Expression::Infix(e) => {
-                self.compile_infix_expression(&e)?;
+                self.compile_infix_expression(e)?;
             }
             Expression::Prefix(e) => {
-                self.compile_prefix_expression(&e)?;
+                self.compile_prefix_expression(e)?;
             }
             Expression::IntegerLiteral(v) => {
                 let idx = self.add_constant(Object::Integer(*v));
-                self.emit(Opcode::OpConstant, &[idx]);
+                self.emit(Opcode::Constant, &[idx]);
             }
             Expression::FloatLiteral(v) => {
                 let idx = self.add_constant(Object::Float(*v));
-                self.emit(Opcode::OpConstant, &[idx]);
+                self.emit(Opcode::Constant, &[idx]);
             }
             Expression::StringLiteral(v) => {
                 let idx = self.add_constant(Object::String(v.clone()));
-                self.emit(Opcode::OpConstant, &[idx]);
+                self.emit(Opcode::Constant, &[idx]);
             }
             Expression::ArrayLiteral(v) => {
                 self.compile_expressions(v)?;
-                self.emit(Opcode::OpArray, &[v.len()]);
+                self.emit(Opcode::Array, &[v.len()]);
             }
             Expression::Boolean(v) => {
                 let op = match v {
-                    true => Opcode::OpTrue,
-                    false => Opcode::OpFalse,
+                    true => Opcode::True,
+                    false => Opcode::False,
                 };
                 self.emit(op, &[]);
             }
             Expression::Null => {
-                self.emit(Opcode::OpNull, &[]);
+                self.emit(Opcode::Null, &[]);
             }
             Expression::Identifier(v) => {
                 let idx = self.add_identifier(v.value.clone());
-                self.emit(Opcode::OpGlobal, &[idx]);
+                self.emit(Opcode::Global, &[idx]);
             }
             Expression::Call(e) => {
                 self.compile_expression(&e.function)?;
                 self.compile_expressions(&e.arguments)?;
-                self.emit(Opcode::OpCall, &[e.arguments.len()]);
+                self.emit(Opcode::Call, &[e.arguments.len()]);
             }
             Expression::Member(e) => {
                 self.compile_expression(&e.left)?;
                 let idx = self.add_identifier(e.member.value.clone());
-                self.emit(Opcode::OpMember, &[idx]);
+                self.emit(Opcode::Member, &[idx]);
             }
             Expression::Cast(e) => {
-                self.compile_cast_expression(&e)?;
+                self.compile_cast_expression(e)?;
             }
         };
         Ok(())
@@ -144,7 +144,7 @@ impl Compiler {
 
         let jump_pos = self.emit_jump_placeholder(jump_op);
 
-        self.emit(Opcode::OpPop, &[]);
+        self.emit(Opcode::Pop, &[]);
 
         self.compile_expression(&expr.right)?;
 
@@ -156,10 +156,10 @@ impl Compiler {
     fn compile_infix_expression(&mut self, expr: &InfixExpression) -> Result<(), String> {
         match expr.token.token_type {
             TokenType::And => {
-                return self.compile_logical_op(expr, Opcode::OpJumpNotTruthy);
+                return self.compile_logical_op(expr, Opcode::JumpNotTruthy);
             }
             TokenType::Or => {
-                return self.compile_logical_op(expr, Opcode::OpJumpTruthy);
+                return self.compile_logical_op(expr, Opcode::JumpTruthy);
             }
             _ => {} // continue
         }
@@ -167,19 +167,19 @@ impl Compiler {
         self.compile_expression(&expr.left)?;
         self.compile_expression(&expr.right)?;
         let op = match expr.token.token_type {
-            TokenType::Plus => Opcode::OpAdd,
-            TokenType::Minus => Opcode::OpSubtract,
-            TokenType::Asterisk => Opcode::OpMultiply,
-            TokenType::Slash => Opcode::OpDivide,
-            TokenType::Equal => Opcode::OpEqual,
-            TokenType::NotEqual => Opcode::OpNotEqual,
-            TokenType::LessThan => Opcode::OpLess,
-            TokenType::LessThanEqual => Opcode::OpLessOrEqual,
-            TokenType::GreaterThan => Opcode::OpGreater,
-            TokenType::GreaterThanEqual => Opcode::OpGreaterOrEqual,
-            TokenType::StartsWith => Opcode::OpStartsWith,
-            TokenType::EndsWith => Opcode::OpEndsWith,
-            TokenType::In => Opcode::OpIn,
+            TokenType::Plus => Opcode::Add,
+            TokenType::Minus => Opcode::Subtract,
+            TokenType::Asterisk => Opcode::Multiply,
+            TokenType::Slash => Opcode::Divide,
+            TokenType::Equal => Opcode::Equal,
+            TokenType::NotEqual => Opcode::NotEqual,
+            TokenType::LessThan => Opcode::Less,
+            TokenType::LessThanEqual => Opcode::LessOrEqual,
+            TokenType::GreaterThan => Opcode::Greater,
+            TokenType::GreaterThanEqual => Opcode::GreaterOrEqual,
+            TokenType::StartsWith => Opcode::StartsWith,
+            TokenType::EndsWith => Opcode::EndsWith,
+            TokenType::In => Opcode::In,
             _ => return Err(format!("unknown infix operator: {}", expr.operator)),
         };
         self.emit(op, &[]);
@@ -190,8 +190,8 @@ impl Compiler {
     fn compile_prefix_expression(&mut self, expr: &PrefixExpression) -> Result<(), String> {
         self.compile_expression(&expr.right)?;
         match expr.token.token_type {
-            TokenType::Bang => self.emit(Opcode::OpNot, &[]),
-            TokenType::Minus => self.emit(Opcode::OpMinus, &[]),
+            TokenType::Bang => self.emit(Opcode::Not, &[]),
+            TokenType::Minus => self.emit(Opcode::Minus, &[]),
             _ => return Err(format!("unknown prefix operator: {}", expr.operator)),
         };
         Ok(())
@@ -207,7 +207,7 @@ impl Compiler {
             "bool" => code::CAST_BOOL,
             other => return Err(format!("unknown cast target: {}", other)),
         };
-        self.emit(Opcode::OpCast, &[type_code as usize]);
+        self.emit(Opcode::Cast, &[type_code as usize]);
         Ok(())
     }
 
@@ -283,9 +283,9 @@ mod tests {
                 expected_constants: vec![1.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpMinus, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Minus, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -293,9 +293,9 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpNot, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::True, &[]),
+                    make(Opcode::Not, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -303,9 +303,9 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpNot, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::True, &[]),
+                    make(Opcode::Not, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -324,12 +324,12 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into(), 3.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpAdd, &[]),
-                    make(Opcode::OpConstant, &[2]),
-                    make(Opcode::OpSubtract, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
+                    make(Opcode::Constant, &[2]),
+                    make(Opcode::Subtract, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -337,10 +337,10 @@ mod tests {
                 expected_constants: vec![2.into(), 3.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpMultiply, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Multiply, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -348,10 +348,10 @@ mod tests {
                 expected_constants: vec![4.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpDivide, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Divide, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -370,12 +370,12 @@ mod tests {
                 expected_constants: vec![1.2.into(), 0.8.into(), 1.5.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpAdd, &[]),
-                    make(Opcode::OpConstant, &[2]),
-                    make(Opcode::OpSubtract, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
+                    make(Opcode::Constant, &[2]),
+                    make(Opcode::Subtract, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -383,10 +383,10 @@ mod tests {
                 expected_constants: vec![3.2.into(), 0.5.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpMultiply, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Multiply, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -394,10 +394,10 @@ mod tests {
                 expected_constants: vec![1.6.into(), 0.4.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpDivide, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Divide, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -416,10 +416,10 @@ mod tests {
                 expected_constants: vec!["a".into(), "b".into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpAdd, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Add, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -427,10 +427,10 @@ mod tests {
                 expected_constants: vec!["abc".into(), "a".into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpStartsWith, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::StartsWith, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -438,10 +438,10 @@ mod tests {
                 expected_constants: vec!["abc".into(), "c".into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpEndsWith, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::EndsWith, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -449,10 +449,10 @@ mod tests {
                 expected_constants: vec!["b".into(), "abc".into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpIn, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::In, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -475,12 +475,12 @@ mod tests {
                 ],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpConstant, &[2]),
-                    make(Opcode::OpArray, &[4]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::True, &[]),
+                    make(Opcode::Constant, &[2]),
+                    make(Opcode::Array, &[4]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -488,10 +488,10 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: vec!["x"],
                 expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpArray, &[2]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Global, &[0]),
+                    make(Opcode::Global, &[0]),
+                    make(Opcode::Array, &[2]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -499,10 +499,10 @@ mod tests {
                 expected_constants: vec![Object::Integer(1)],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpArray, &[1]),
-                    make(Opcode::OpArray, &[1]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Array, &[1]),
+                    make(Opcode::Array, &[1]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -510,13 +510,13 @@ mod tests {
                 expected_constants: vec![2.into(), 1.into(), 2.into(), 3.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpConstant, &[2]),
-                    make(Opcode::OpConstant, &[3]),
-                    make(Opcode::OpArray, &[3]),
-                    make(Opcode::OpIn, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Constant, &[2]),
+                    make(Opcode::Constant, &[3]),
+                    make(Opcode::Array, &[3]),
+                    make(Opcode::In, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -534,9 +534,9 @@ mod tests {
             expected_constants: Vec::new(),
             expected_identifiers: vec!["x".into()],
             expected_instructions: vec![
-                make(Opcode::OpGlobal, &[0]),
-                make(Opcode::OpCast, &[code::CAST_FLOAT as usize]),
-                make(Opcode::OpPop, &[]),
+                make(Opcode::Global, &[0]),
+                make(Opcode::Cast, &[code::CAST_FLOAT as usize]),
+                make(Opcode::Pop, &[]),
             ],
         }];
 
@@ -553,12 +553,12 @@ mod tests {
             expected_constants: vec![Object::Integer(1), Object::Integer(2)],
             expected_identifiers: vec!["len".into()],
             expected_instructions: vec![
-                make(Opcode::OpGlobal, &[0]),
-                make(Opcode::OpConstant, &[0]),
-                make(Opcode::OpConstant, &[1]),
-                make(Opcode::OpArray, &[2]),
-                make(Opcode::OpCall, &[1]),
-                make(Opcode::OpPop, &[]),
+                make(Opcode::Global, &[0]),
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::Array, &[2]),
+                make(Opcode::Call, &[1]),
+                make(Opcode::Pop, &[]),
             ],
         }];
 
@@ -575,13 +575,13 @@ mod tests {
                 input: "true",
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
-                expected_instructions: vec![make(Opcode::OpTrue, &[]), make(Opcode::OpPop, &[])],
+                expected_instructions: vec![make(Opcode::True, &[]), make(Opcode::Pop, &[])],
             },
             CompilerTestCase {
                 input: "false",
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
-                expected_instructions: vec![make(Opcode::OpFalse, &[]), make(Opcode::OpPop, &[])],
+                expected_instructions: vec![make(Opcode::False, &[]), make(Opcode::Pop, &[])],
             },
         ];
 
@@ -597,7 +597,7 @@ mod tests {
             input: "null",
             expected_constants: Vec::new(),
             expected_identifiers: Vec::new(),
-            expected_instructions: vec![make(Opcode::OpNull, &[]), make(Opcode::OpPop, &[])],
+            expected_instructions: vec![make(Opcode::Null, &[]), make(Opcode::Pop, &[])],
         };
         let bytecode = compile(test.input);
         test.assert(&bytecode);
@@ -611,10 +611,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpEqual, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Equal, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -622,10 +622,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpNotEqual, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::NotEqual, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -633,10 +633,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpLess, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Less, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -644,10 +644,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpLessOrEqual, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::LessOrEqual, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -655,10 +655,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpGreater, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::Greater, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -666,10 +666,10 @@ mod tests {
                 expected_constants: vec![1.into(), 2.into()],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpGreaterOrEqual, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Constant, &[0]),
+                    make(Opcode::Constant, &[1]),
+                    make(Opcode::GreaterOrEqual, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -688,11 +688,11 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpJumpNotTruthy, &[6]),
-                    make(Opcode::OpPop, &[]),
-                    make(Opcode::OpFalse, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::True, &[]),
+                    make(Opcode::JumpNotTruthy, &[6]),
+                    make(Opcode::Pop, &[]),
+                    make(Opcode::False, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -700,11 +700,11 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpJumpTruthy, &[6]),
-                    make(Opcode::OpPop, &[]),
-                    make(Opcode::OpFalse, &[]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::True, &[]),
+                    make(Opcode::JumpTruthy, &[6]),
+                    make(Opcode::Pop, &[]),
+                    make(Opcode::False, &[]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];
@@ -722,9 +722,9 @@ mod tests {
             expected_constants: Vec::new(),
             expected_identifiers: vec!["obj", "field"],
             expected_instructions: vec![
-                make(Opcode::OpGlobal, &[0]),
-                make(Opcode::OpMember, &[1]),
-                make(Opcode::OpPop, &[]),
+                make(Opcode::Global, &[0]),
+                make(Opcode::Member, &[1]),
+                make(Opcode::Pop, &[]),
             ],
         };
         let bytecode = compile(test.input);
@@ -739,9 +739,9 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: vec!["x"],
                 expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpCast, &[code::CAST_INT as usize]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Global, &[0]),
+                    make(Opcode::Cast, &[code::CAST_INT as usize]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -749,9 +749,9 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: vec!["x"],
                 expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpCast, &[code::CAST_STRING as usize]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Global, &[0]),
+                    make(Opcode::Cast, &[code::CAST_STRING as usize]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
             CompilerTestCase {
@@ -759,9 +759,9 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: vec!["x"],
                 expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpCast, &[code::CAST_BOOL as usize]),
-                    make(Opcode::OpPop, &[]),
+                    make(Opcode::Global, &[0]),
+                    make(Opcode::Cast, &[code::CAST_BOOL as usize]),
+                    make(Opcode::Pop, &[]),
                 ],
             },
         ];

@@ -61,7 +61,7 @@ impl<'a> Lexer<'a> {
 
         let token = match self.ch {
             0 => Token {
-                token_type: TokenType::EOF,
+                token_type: TokenType::Eof,
                 literal: "".into(),
             },
 
@@ -277,11 +277,8 @@ impl<'a> Lexer<'a> {
 
     /// Skips whitespace characters in the input.
     fn skip_whitespace(&mut self) {
-        loop {
-            match self.ch {
-                b' ' | b'\t' | b'\n' | b'\r' => self.read_char(),
-                _ => break,
-            }
+        while let b' ' | b'\t' | b'\n' | b'\r' = self.ch {
+            self.read_char();
         }
     }
 }
@@ -307,7 +304,7 @@ mod tests {
             (
                 "",
                 Token {
-                    token_type: TokenType::EOF,
+                    token_type: TokenType::Eof,
                     literal: "".into(),
                 },
             ),
@@ -391,7 +388,7 @@ mod tests {
         let mut tokens = Vec::new();
         loop {
             let token = lexer.next_token();
-            if token.token_type == TokenType::EOF {
+            if token.token_type == TokenType::Eof {
                 break;
             };
             tokens.push(token);
@@ -465,7 +462,7 @@ mod tests {
         assert_eq!(token2.token_type, TokenType::Stop);
 
         let token3 = lexer.next_token();
-        assert_eq!(token3.token_type, TokenType::EOF);
+        assert_eq!(token3.token_type, TokenType::Eof);
     }
 
     #[test]
@@ -496,7 +493,7 @@ mod tests {
         assert_eq!(token2.literal, "b");
 
         let token3 = lexer.next_token();
-        assert_eq!(token3.token_type, TokenType::EOF);
+        assert_eq!(token3.token_type, TokenType::Eof);
     }
 
     #[test]

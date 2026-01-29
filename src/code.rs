@@ -79,33 +79,33 @@ macro_rules! define_opcodes {
 }
 
 define_opcodes!(
-    OpGlobal,
-    OpConstant,
-    OpArray,
-    OpTrue,
-    OpFalse,
-    OpNull,
-    OpAdd,
-    OpSubtract,
-    OpMultiply,
-    OpDivide,
-    OpEqual,
-    OpNotEqual,
-    OpLess,
-    OpLessOrEqual,
-    OpGreater,
-    OpGreaterOrEqual,
-    OpStartsWith,
-    OpEndsWith,
-    OpIn,
-    OpMinus,
-    OpNot,
-    OpMember,
-    OpCall,
-    OpCast,
-    OpJumpTruthy,
-    OpJumpNotTruthy,
-    OpPop
+    Global,
+    Constant,
+    Array,
+    True,
+    False,
+    Null,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Equal,
+    NotEqual,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+    StartsWith,
+    EndsWith,
+    In,
+    Minus,
+    Not,
+    Member,
+    Call,
+    Cast,
+    JumpTruthy,
+    JumpNotTruthy,
+    Pop
 );
 
 // Cast type codes
@@ -118,112 +118,112 @@ impl Opcode {
     /// Looks up the definition of the opcode.
     fn lookup(&self) -> Definition {
         match self {
-            Opcode::OpGlobal => Definition {
-                name: "OpGlobal",
+            Opcode::Global => Definition {
+                name: "Global",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpConstant => Definition {
-                name: "OpConstant",
+            Opcode::Constant => Definition {
+                name: "Constant",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpArray => Definition {
-                name: "OpArray",
+            Opcode::Array => Definition {
+                name: "Array",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpTrue => Definition {
-                name: "OpTrue",
+            Opcode::True => Definition {
+                name: "True",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpFalse => Definition {
-                name: "OpFalse",
+            Opcode::False => Definition {
+                name: "False",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpNull => Definition {
-                name: "OpNull",
+            Opcode::Null => Definition {
+                name: "Null",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpAdd => Definition {
-                name: "OpAdd",
+            Opcode::Add => Definition {
+                name: "Add",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpSubtract => Definition {
-                name: "OpSubtract",
+            Opcode::Subtract => Definition {
+                name: "Subtract",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpMultiply => Definition {
-                name: "OpMultiply",
+            Opcode::Multiply => Definition {
+                name: "Multiply",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpDivide => Definition {
-                name: "OpDivide",
+            Opcode::Divide => Definition {
+                name: "Divide",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpEqual => Definition {
-                name: "OpEqual",
+            Opcode::Equal => Definition {
+                name: "Equal",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpNotEqual => Definition {
-                name: "OpNotEqual",
+            Opcode::NotEqual => Definition {
+                name: "NotEqual",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpLess => Definition {
-                name: "OpLess",
+            Opcode::Less => Definition {
+                name: "Less",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpLessOrEqual => Definition {
-                name: "OpLessOrEqual",
+            Opcode::LessOrEqual => Definition {
+                name: "LessOrEqual",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpGreater => Definition {
-                name: "OpGreater",
+            Opcode::Greater => Definition {
+                name: "Greater",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpGreaterOrEqual => Definition {
-                name: "OpGreaterOrEqual",
+            Opcode::GreaterOrEqual => Definition {
+                name: "GreaterOrEqual",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpStartsWith => Definition {
-                name: "OpStartsWith",
+            Opcode::StartsWith => Definition {
+                name: "StartsWith",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpEndsWith => Definition {
-                name: "OpEndsWith",
+            Opcode::EndsWith => Definition {
+                name: "EndsWith",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpIn => Definition {
-                name: "OpIn",
+            Opcode::In => Definition {
+                name: "In",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpNot => Definition {
-                name: "OpNot",
+            Opcode::Not => Definition {
+                name: "Not",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpMinus => Definition {
-                name: "OpMinus",
+            Opcode::Minus => Definition {
+                name: "Minus",
                 operand_widths: NO_OPERANDS,
             },
-            Opcode::OpMember => Definition {
-                name: "OpMember",
+            Opcode::Member => Definition {
+                name: "Member",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpCall => Definition {
-                name: "OpCall",
+            Opcode::Call => Definition {
+                name: "Call",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpCast => Definition {
-                name: "OpCast",
+            Opcode::Cast => Definition {
+                name: "Cast",
                 operand_widths: ONE_BYTE_OPERAND,
             },
-            Opcode::OpJumpTruthy => Definition {
-                name: "OpJumpTruthy",
+            Opcode::JumpTruthy => Definition {
+                name: "JumpTruthy",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpJumpNotTruthy => Definition {
-                name: "OpJumpNotTruthy",
+            Opcode::JumpNotTruthy => Definition {
+                name: "JumpNotTruthy",
                 operand_widths: ONE_OPERAND,
             },
-            Opcode::OpPop => Definition {
-                name: "OpPop",
+            Opcode::Pop => Definition {
+                name: "Pop",
                 operand_widths: NO_OPERANDS,
             },
         }
@@ -302,36 +302,33 @@ mod tests {
     #[test]
     fn test_instructions_fmt() {
         let tests: Vec<(Instructions, &str)> = vec![
-            (make(Opcode::OpGlobal, &[1]), "0000 OpGlobal 1"),
-            (make(Opcode::OpConstant, &[1]), "0000 OpConstant 1"),
-            (make(Opcode::OpArray, &[1]), "0000 OpArray 1"),
-            (make(Opcode::OpTrue, &[]), "0000 OpTrue"),
-            (make(Opcode::OpFalse, &[]), "0000 OpFalse"),
-            (make(Opcode::OpNull, &[]), "0000 OpNull"),
-            (make(Opcode::OpAdd, &[]), "0000 OpAdd"),
-            (make(Opcode::OpSubtract, &[]), "0000 OpSubtract"),
-            (make(Opcode::OpMultiply, &[]), "0000 OpMultiply"),
-            (make(Opcode::OpDivide, &[]), "0000 OpDivide"),
-            (make(Opcode::OpEqual, &[]), "0000 OpEqual"),
-            (make(Opcode::OpNotEqual, &[]), "0000 OpNotEqual"),
-            (make(Opcode::OpLess, &[]), "0000 OpLess"),
-            (make(Opcode::OpLessOrEqual, &[]), "0000 OpLessOrEqual"),
-            (make(Opcode::OpGreater, &[]), "0000 OpGreater"),
-            (make(Opcode::OpGreaterOrEqual, &[]), "0000 OpGreaterOrEqual"),
-            (make(Opcode::OpStartsWith, &[]), "0000 OpStartsWith"),
-            (make(Opcode::OpEndsWith, &[]), "0000 OpEndsWith"),
-            (make(Opcode::OpIn, &[]), "0000 OpIn"),
-            (make(Opcode::OpMinus, &[]), "0000 OpMinus"),
-            (make(Opcode::OpNot, &[]), "0000 OpNot"),
-            (make(Opcode::OpMember, &[1]), "0000 OpMember 1"),
-            (make(Opcode::OpCall, &[1]), "0000 OpCall 1"),
-            (make(Opcode::OpCast, &[CAST_INT as usize]), "0000 OpCast 0"),
-            (make(Opcode::OpJumpTruthy, &[1]), "0000 OpJumpTruthy 1"),
-            (
-                make(Opcode::OpJumpNotTruthy, &[1]),
-                "0000 OpJumpNotTruthy 1",
-            ),
-            (make(Opcode::OpPop, &[]), "0000 OpPop"),
+            (make(Opcode::Global, &[1]), "0000 Global 1"),
+            (make(Opcode::Constant, &[1]), "0000 Constant 1"),
+            (make(Opcode::Array, &[1]), "0000 Array 1"),
+            (make(Opcode::True, &[]), "0000 True"),
+            (make(Opcode::False, &[]), "0000 False"),
+            (make(Opcode::Null, &[]), "0000 Null"),
+            (make(Opcode::Add, &[]), "0000 Add"),
+            (make(Opcode::Subtract, &[]), "0000 Subtract"),
+            (make(Opcode::Multiply, &[]), "0000 Multiply"),
+            (make(Opcode::Divide, &[]), "0000 Divide"),
+            (make(Opcode::Equal, &[]), "0000 Equal"),
+            (make(Opcode::NotEqual, &[]), "0000 NotEqual"),
+            (make(Opcode::Less, &[]), "0000 Less"),
+            (make(Opcode::LessOrEqual, &[]), "0000 LessOrEqual"),
+            (make(Opcode::Greater, &[]), "0000 Greater"),
+            (make(Opcode::GreaterOrEqual, &[]), "0000 GreaterOrEqual"),
+            (make(Opcode::StartsWith, &[]), "0000 StartsWith"),
+            (make(Opcode::EndsWith, &[]), "0000 EndsWith"),
+            (make(Opcode::In, &[]), "0000 In"),
+            (make(Opcode::Minus, &[]), "0000 Minus"),
+            (make(Opcode::Not, &[]), "0000 Not"),
+            (make(Opcode::Member, &[1]), "0000 Member 1"),
+            (make(Opcode::Call, &[1]), "0000 Call 1"),
+            (make(Opcode::Cast, &[CAST_INT as usize]), "0000 Cast 0"),
+            (make(Opcode::JumpTruthy, &[1]), "0000 JumpTruthy 1"),
+            (make(Opcode::JumpNotTruthy, &[1]), "0000 JumpNotTruthy 1"),
+            (make(Opcode::Pop, &[]), "0000 Pop"),
         ];
 
         for (instructions, expected) in tests {
@@ -353,20 +350,20 @@ mod tests {
         let instructions = compiler.program().instructions;
         let actual = format!("{}", instructions);
 
-        let expected = r#"0000 OpConstant 0
-0003 OpGlobal 0
-0006 OpCast 1
-0008 OpSubtract
-0009 OpConstant 1
-0012 OpGreater
-0013 OpJumpNotTruthy 30
-0016 OpPop
-0017 OpGlobal 1
-0020 OpConstant 2
-0023 OpConstant 3
-0026 OpArray 2
-0029 OpIn
-0030 OpPop
+        let expected = r#"0000 Constant 0
+0003 Global 0
+0006 Cast 1
+0008 Subtract
+0009 Constant 1
+0012 Greater
+0013 JumpNotTruthy 30
+0016 Pop
+0017 Global 1
+0020 Constant 2
+0023 Constant 3
+0026 Array 2
+0029 In
+0030 Pop
 "#;
         assert_eq!(actual, expected);
     }

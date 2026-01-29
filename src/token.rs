@@ -4,7 +4,7 @@ use std::fmt;
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
     Illegal,
-    EOF,
+    Eof,
     Ident,
     Integer,
     Float,
@@ -42,7 +42,7 @@ impl TokenType {
     pub fn as_str(self) -> &'static str {
         match self {
             TokenType::Illegal => "ILLEGAL",
-            TokenType::EOF => "EOF",
+            TokenType::Eof => "EOF",
             TokenType::Ident => "IDENT",
             TokenType::Integer => "INTEGER",
             TokenType::Float => "FLOAT",
@@ -109,7 +109,7 @@ mod tests {
     fn test_token_type_as_str() {
         let tests: Vec<(TokenType, &'static str)> = vec![
             (TokenType::Illegal, "ILLEGAL"),
-            (TokenType::EOF, "EOF"),
+            (TokenType::Eof, "EOF"),
             (TokenType::Ident, "IDENT"),
             (TokenType::Integer, "INTEGER"),
             (TokenType::Float, "FLOAT"),

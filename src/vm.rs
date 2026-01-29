@@ -41,46 +41,46 @@ impl VM {
 
             match op {
                 // Constant & Identifier Loading
-                Opcode::OpConstant => {
+                Opcode::Constant => {
                     let index = self.read_usize(&mut ip);
                     let obj = self.constants[index].clone();
                     self.push(obj)?;
                 }
-                Opcode::OpGlobal => {
+                Opcode::Global => {
                     let index = self.read_usize(&mut ip);
                     let ident = self.identifiers[index].clone();
                     self.execute_identifier(&ident, env)?;
                 }
 
                 // Literal Values
-                Opcode::OpTrue => self.push(Object::Boolean(true))?,
-                Opcode::OpFalse => self.push(Object::Boolean(false))?,
-                Opcode::OpNull => self.push(Object::Null)?,
+                Opcode::True => self.push(Object::Boolean(true))?,
+                Opcode::False => self.push(Object::Boolean(false))?,
+                Opcode::Null => self.push(Object::Null)?,
 
                 // Collection Construction
-                Opcode::OpArray => {
+                Opcode::Array => {
                     let array_len = self.read_usize(&mut ip);
                     self.execute_array(array_len)?;
                 }
 
                 // Unary Operations
-                Opcode::OpNot => self.execute_not_operation()?,
-                Opcode::OpMinus => self.execute_minus_operation()?,
+                Opcode::Not => self.execute_not_operation()?,
+                Opcode::Minus => self.execute_minus_operation()?,
 
                 // Binary Operations (pop two operands, execute, push result)
-                Opcode::OpAdd
-                | Opcode::OpSubtract
-                | Opcode::OpMultiply
-                | Opcode::OpDivide
-                | Opcode::OpEqual
-                | Opcode::OpNotEqual
-                | Opcode::OpLess
-                | Opcode::OpLessOrEqual
-                | Opcode::OpGreater
-                | Opcode::OpGreaterOrEqual
-                | Opcode::OpStartsWith
-                | Opcode::OpEndsWith
-                | Opcode::OpIn => {
+                Opcode::Add
+                | Opcode::Subtract
+                | Opcode::Multiply
+                | Opcode::Divide
+                | Opcode::Equal
+                | Opcode::NotEqual
+                | Opcode::Less
+                | Opcode::LessOrEqual
+                | Opcode::Greater
+                | Opcode::GreaterOrEqual
+                | Opcode::StartsWith
+                | Opcode::EndsWith
+                | Opcode::In => {
                     let right = self.pop()?;
                     let left = self.pop()?;
                     let result = self.execute_binary_operation(op, left, right)?;
@@ -88,30 +88,30 @@ impl VM {
                 }
 
                 // Field Access
-                Opcode::OpMember => {
+                Opcode::Member => {
                     let index = self.read_usize(&mut ip);
                     self.execute_member_operation(index)?;
                 }
 
                 // Type Casting
-                Opcode::OpCast => {
+                Opcode::Cast => {
                     let type_code = self.read_u8(&mut ip);
                     self.execute_cast_operation(type_code)?;
                 }
 
                 // Function Calls
-                Opcode::OpCall => {
+                Opcode::Call => {
                     let num_args = self.read_usize(&mut ip);
                     self.execute_call_operation(num_args)?;
                 }
 
                 // Control Flow (peeks at stack without consuming for condition testing)
-                Opcode::OpJumpTruthy | Opcode::OpJumpNotTruthy => {
+                Opcode::JumpTruthy | Opcode::JumpNotTruthy => {
                     let pos = self.read_usize(&mut ip);
                     let condition = self.stack.last().ok_or("stack underflow")?;
                     let should_jump = match op {
-                        Opcode::OpJumpTruthy => object::is_truthy(condition),
-                        Opcode::OpJumpNotTruthy => !object::is_truthy(condition),
+                        Opcode::JumpTruthy => object::is_truthy(condition),
+                        Opcode::JumpNotTruthy => !object::is_truthy(condition),
                         _ => return Err(format!("invalid jump opcode: {:?}", op)),
                     };
                     if should_jump {
@@ -120,7 +120,7 @@ impl VM {
                 }
 
                 // Stack Management
-                Opcode::OpPop => {
+                Opcode::Pop => {
                     self.pop()?;
                 }
             }
@@ -244,11 +244,11 @@ impl VM {
                 self.execute_boolean_binary_operation(op, l, r)
             }
             (_, Object::Null, Object::Null) => match op {
-                Opcode::OpEqual => Ok(Object::Boolean(true)),
-                Opcode::OpNotEqual => Ok(Object::Boolean(false)),
+                Opcode::Equal => Ok(Object::Boolean(true)),
+                Opcode::NotEqual => Ok(Object::Boolean(false)),
                 _ => Err("invalid operation on null".into()),
             },
-            (Opcode::OpIn, left, Object::Array(r)) => {
+            (Opcode::In, left, Object::Array(r)) => {
                 let found = r.iter().any(|e| Self::apply_loose_equality(&left, e));
                 Ok(Object::Boolean(found))
             }
@@ -264,16 +264,16 @@ impl VM {
         right: i64,
     ) -> Result<Object, String> {
         let result = match op {
-            Opcode::OpAdd => Object::Integer(left + right),
-            Opcode::OpSubtract => Object::Integer(left - right),
-            Opcode::OpMultiply => Object::Integer(left * right),
-            Opcode::OpDivide => Object::Integer(left / right),
-            Opcode::OpEqual => Object::Boolean(left == right),
-            Opcode::OpNotEqual => Object::Boolean(left != right),
-            Opcode::OpLess => Object::Boolean(left < right),
-            Opcode::OpLessOrEqual => Object::Boolean(left <= right),
-            Opcode::OpGreater => Object::Boolean(left > right),
-            Opcode::OpGreaterOrEqual => Object::Boolean(left >= right),
+            Opcode::Add => Object::Integer(left + right),
+            Opcode::Subtract => Object::Integer(left - right),
+            Opcode::Multiply => Object::Integer(left * right),
+            Opcode::Divide => Object::Integer(left / right),
+            Opcode::Equal => Object::Boolean(left == right),
+            Opcode::NotEqual => Object::Boolean(left != right),
+            Opcode::Less => Object::Boolean(left < right),
+            Opcode::LessOrEqual => Object::Boolean(left <= right),
+            Opcode::Greater => Object::Boolean(left > right),
+            Opcode::GreaterOrEqual => Object::Boolean(left >= right),
             _ => return Err(format!("unknown integer operation: {:?}", op)),
         };
         Ok(result)
@@ -287,16 +287,16 @@ impl VM {
         right: f64,
     ) -> Result<Object, String> {
         let result = match op {
-            Opcode::OpAdd => Object::Float(left + right),
-            Opcode::OpSubtract => Object::Float(left - right),
-            Opcode::OpMultiply => Object::Float(left * right),
-            Opcode::OpDivide => Object::Float(left / right),
-            Opcode::OpEqual => Object::Boolean(left == right),
-            Opcode::OpNotEqual => Object::Boolean(left != right),
-            Opcode::OpLess => Object::Boolean(left < right),
-            Opcode::OpLessOrEqual => Object::Boolean(left <= right),
-            Opcode::OpGreater => Object::Boolean(left > right),
-            Opcode::OpGreaterOrEqual => Object::Boolean(left >= right),
+            Opcode::Add => Object::Float(left + right),
+            Opcode::Subtract => Object::Float(left - right),
+            Opcode::Multiply => Object::Float(left * right),
+            Opcode::Divide => Object::Float(left / right),
+            Opcode::Equal => Object::Boolean(left == right),
+            Opcode::NotEqual => Object::Boolean(left != right),
+            Opcode::Less => Object::Boolean(left < right),
+            Opcode::LessOrEqual => Object::Boolean(left <= right),
+            Opcode::Greater => Object::Boolean(left > right),
+            Opcode::GreaterOrEqual => Object::Boolean(left >= right),
             _ => return Err(format!("unknown float operation: {:?}", op)),
         };
         Ok(result)
@@ -310,16 +310,16 @@ impl VM {
         right: &str,
     ) -> Result<Object, String> {
         let result = match op {
-            Opcode::OpAdd => {
+            Opcode::Add => {
                 let mut str = left.to_owned();
                 str.push_str(right);
                 Object::String(str)
             }
-            Opcode::OpEqual => Object::Boolean(left == right),
-            Opcode::OpNotEqual => Object::Boolean(left != right),
-            Opcode::OpStartsWith => Object::Boolean(left.starts_with(right)),
-            Opcode::OpEndsWith => Object::Boolean(left.ends_with(right)),
-            Opcode::OpIn => Object::Boolean(right.contains(left)),
+            Opcode::Equal => Object::Boolean(left == right),
+            Opcode::NotEqual => Object::Boolean(left != right),
+            Opcode::StartsWith => Object::Boolean(left.starts_with(right)),
+            Opcode::EndsWith => Object::Boolean(left.ends_with(right)),
+            Opcode::In => Object::Boolean(right.contains(left)),
             _ => return Err(format!("unknown string operation: {:?}", op)),
         };
         Ok(result)
@@ -333,8 +333,8 @@ impl VM {
         right: bool,
     ) -> Result<Object, String> {
         let result = match op {
-            Opcode::OpEqual => Object::Boolean(left == right),
-            Opcode::OpNotEqual => Object::Boolean(left != right),
+            Opcode::Equal => Object::Boolean(left == right),
+            Opcode::NotEqual => Object::Boolean(left != right),
             // Opcode::OpAnd => Object::Boolean(left && right),
             // Opcode::OpOr => Object::Boolean(left || right),
             _ => return Err(format!("unknown boolean operation: {:?}", op)),

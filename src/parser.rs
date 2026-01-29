@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
             _ => return None,
         };
 
-        while !self.peek_token_is(TokenType::EOF) && precedence < self.peek_precedence() {
+        while !self.peek_token_is(TokenType::Eof) && precedence < self.peek_precedence() {
             exp = match self.peek_token.token_type {
                 TokenType::Plus
                 | TokenType::Minus
