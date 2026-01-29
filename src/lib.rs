@@ -41,7 +41,7 @@ pub fn run(program: Program, env: &Environment) -> Result<Object, String> {
 pub fn eval(input: &str, env: &Environment) -> Result<Object, String> {
     let program = compile(input)?;
     run(program, env)
-}   
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -65,7 +65,11 @@ pub mod tests {
     fn test_eval() {
         let mut env = Environment::default();
         env.set("str", "abc".into());
-        let result = eval("2 gt 1 and str ew \"c\" and 0.5 in [\"a\", 0.5, true]", &env).unwrap();
-        assert!((result == true.into()));   
+        let result = eval(
+            "2 gt 1 and str ew \"c\" and 0.5 in [\"a\", 0.5, true]",
+            &env,
+        )
+        .unwrap();
+        assert!((result == true.into()));
     }
 }
