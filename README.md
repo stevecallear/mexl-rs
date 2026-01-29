@@ -3,7 +3,7 @@
 
 `mexl` is a simple expression language. Originally written in [Go](https://github.com/stevecallear/mexl), it has been ported as a learning exercise and to provide a stronger foundation for future WASM/WASI targets.
 
-It is intended to offer a simple syntax for expression evaluation, but with high performance and a type system designed to reduce complexity when handling unknown inputs.
+It is intended to offer a simple syntax for expressions, but with high performance and a type system designed to reduce complexity when handling unknown inputs.
 
 ## Getting Started
 
