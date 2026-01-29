@@ -15,9 +15,10 @@ use crate::lexer::Lexer;
 use crate::vm::VM;
 
 pub use crate::environment::Environment;
-pub use crate::object::Object;
+pub use crate::object::{Object, unify_operands};
 pub use crate::compiler::Program;
 
+/// Compiles the given input string into a Program.
 pub fn compile(input: &str) -> Result<Program, String> {
     let lexer = Lexer::new(input);
     let mut parser = Parser::new(lexer);
@@ -28,6 +29,7 @@ pub fn compile(input: &str) -> Result<Program, String> {
     Ok(compiler.program())
 }
 
+/// Runs the given Program using the provided Environment.
 pub fn run(program: Program, env: &Environment) -> Result<Object, String> {
     let mut vm = VM::new(program);
     vm.run(env)

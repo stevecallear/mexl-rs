@@ -1,5 +1,6 @@
 use crate::{Object};
 
+/// Returns the length of a string or array.
 pub fn len(args: Vec<Object>) -> Result<Object, String> {
     if args.len() != 1 {
         return Err(format!("len: wrong numer of arguments: {}", args.len()));
@@ -13,6 +14,7 @@ pub fn len(args: Vec<Object>) -> Result<Object, String> {
     }
 }
 
+/// Converts a string to lowercase.
 pub fn lower(args: Vec<Object>) -> Result<Object, String> {
     if args.len() != 1 {
         return Err(format!("lower: wrong numer of arguments: {}", args.len()));
@@ -25,6 +27,7 @@ pub fn lower(args: Vec<Object>) -> Result<Object, String> {
     }
 }
 
+/// Converts a string to uppercase.
 pub fn upper(args: Vec<Object>) -> Result<Object, String> {
     if args.len() != 1 {
         return Err(format!("upper: wrong numer of arguments: {}", args.len()));

@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::token::Token;
 
+/// Represents an expression in the abstract syntax tree (AST).
 #[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
@@ -19,6 +20,7 @@ pub enum Expression {
 }
 
 impl fmt::Display for Expression {
+    /// Formats the expression as a string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Expression::Identifier(v) => write!(f, "{}", v),
@@ -60,18 +62,20 @@ impl fmt::Display for Expression {
     }
 }
 
+/// Represents an identifier in the AST.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
-    pub token: Token,
     pub value: String,
 }
 
 impl fmt::Display for Identifier {
+    /// Formats the identifier as a string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.value)
     }
 }
 
+/// Represents a prefix expression in the AST.
 #[derive(Clone, Debug)]
 pub struct PrefixExpression {
     pub token: Token,
@@ -79,6 +83,7 @@ pub struct PrefixExpression {
     pub right: Box<Expression>,
 }
 
+/// Represents an infix expression in the AST.
 #[derive(Clone, Debug)]
 pub struct InfixExpression {
     pub token: Token,
@@ -87,18 +92,21 @@ pub struct InfixExpression {
     pub right: Box<Expression>,
 }
 
+/// Represents a function call expression in the AST.
 #[derive(Clone, Debug)]
 pub struct CallExpression {
     pub function: Box<Expression>,
     pub arguments: Vec<Expression>,
 }
 
+/// Represents a member access expression in the AST.
 #[derive(Clone, Debug)]
 pub struct MemberExpression {
     pub left: Box<Expression>,
     pub member: Identifier,
 }
 
+/// Represents a type cast expression in the AST.
 #[derive(Clone, Debug)]
 pub struct CastExpression {
     pub left: Box<Expression>,
@@ -108,7 +116,7 @@ pub struct CastExpression {
 
 #[cfg(test)]
 mod tests {
-    use crate::{token::TokenType};
+    use crate::token::{Token, TokenType};
     use super::*;
 
     #[test]
@@ -119,8 +127,8 @@ mod tests {
             (Expression::StringLiteral("abc".into()), r#""abc""#),
             (Expression::ArrayLiteral(vec![
                 Expression::IntegerLiteral(1),
-                Expression::Prefix(Box::new(PrefixExpression { 
-                    token: Token::new(TokenType::Minus, "-".into()), 
+                Expression::Prefix(Box::new(PrefixExpression {
+                    token: Token::new(TokenType::Minus, "-".into()),
                     operator: "-".into(), 
                     right: Box::new(Expression::FloatLiteral(1.5)),
                 })),
@@ -129,45 +137,40 @@ mod tests {
             (Expression::Boolean(true), "true"),
             (Expression::Boolean(false), "false"),           
             (Expression::Null, "null"),
-            (Expression::Prefix(Box::new(PrefixExpression { 
-                token: Token::new(TokenType::Minus, "-".into()), 
+            (Expression::Prefix(Box::new(PrefixExpression {
+                token: Token::new(TokenType::Minus, "-".into()),
                 operator: "-".into(), 
                 right: Box::new(Expression::IntegerLiteral(1)),
             })), "(-1)"),
-            (Expression::Prefix(Box::new(PrefixExpression { 
-                token: Token::new(TokenType::Bang, "not".into()), 
+            (Expression::Prefix(Box::new(PrefixExpression {
+                token: Token::new(TokenType::Bang, "not".into()),
                 operator: "not".into(), 
                 right: Box::new(Expression::Boolean(true)),
             })), "(not true)"),
-            (Expression::Infix(Box::new(InfixExpression { 
-                token: Token::new(TokenType::Plus, "+".into()), 
+            (Expression::Infix(Box::new(InfixExpression {
+                token: Token::new(TokenType::Plus, "+".into()),
                 left: Box::new(Expression::IntegerLiteral(1)),
                 operator: "+".into(), 
                 right: Box::new(Expression::IntegerLiteral(2)),
             })), "(1 + 2)"),
             (Expression::Member(Box::new(MemberExpression { 
                 left: Box::new(Expression::Identifier(Identifier { 
-                    token: Token::new(TokenType::Ident, "x".into()),
                     value: "x".into(),
                 })),
                 member: Identifier {
-                    token: Token::new(TokenType::Ident, "y".into()),
                     value: "y".into(),
                 },
             })), "(x.y)"),
             (Expression::Cast(Box::new(CastExpression {
                 left: Box::new(Expression::Identifier(Identifier { 
-                    token: Token::new(TokenType::Ident, "x".into()),
                     value: "x".into(),
                 })),
                 target_type: Identifier {
-                    token: Token::new(TokenType::Ident, "float".into()),
                     value: "float".into(),
                 },
             })), "(x as float)"),
             (Expression::Call(Box::new(CallExpression { 
                 function: Box::new(Expression::Identifier(Identifier {
-                    token: Token::new(TokenType::Ident, "fn".into()),
                     value: "fn".into(),
                 })),
                 arguments: vec![

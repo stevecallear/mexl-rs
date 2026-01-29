@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Represents the different types of tokens in the language.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
     Illegal,
@@ -16,20 +17,20 @@ pub enum TokenType {
     Asterisk,
     Slash,
     Stop,
-	Comma,
+    Comma,
     LParen,
-	RParen,
-	LBracket,
-	RBracket,
-	Bang,
+    RParen,
+    LBracket,
+    RBracket,
+    Bang,
     And,
-	Or,
-	Equal,
-	NotEqual,
-	LessThan,
-	LessThanEqual,
-	GreaterThan,
-	GreaterThanEqual,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
     In,
     StartsWith,
     EndsWith,
@@ -37,6 +38,7 @@ pub enum TokenType {
 }
 
 impl TokenType {
+    /// Returns the string representation of the token type.
     pub fn as_str(self) -> &'static str {
         match self {
             TokenType::Illegal => "ILLEGAL",
@@ -48,33 +50,34 @@ impl TokenType {
             TokenType::True => "TRUE",
             TokenType::False => "FALSE",
             TokenType::Null => "NULL",
-            TokenType::Plus => "+",
-            TokenType::Minus => "-",
-            TokenType::Asterisk => "*",
-            TokenType::Slash => "/",
-            TokenType::Stop => ".",
-            TokenType::Comma => ",",
-            TokenType::LParen => "(",
-            TokenType::RParen => ")",
-            TokenType::LBracket => "[",
-            TokenType::RBracket => "]",
-            TokenType::Bang => "!",
-            TokenType::And => "&&",
-            TokenType::Or => "||",
-            TokenType::Equal => "==",
-            TokenType::NotEqual => "!=",
-            TokenType::LessThan => "<",
-            TokenType::LessThanEqual => "<=",
-            TokenType::GreaterThan => ">",
-            TokenType::GreaterThanEqual => ">=",
+            TokenType::Plus => "PLUS",
+            TokenType::Minus => "MINUS",
+            TokenType::Asterisk => "ASTERISK",
+            TokenType::Slash => "SLASH",
+            TokenType::Stop => "STOP",
+            TokenType::Comma => "COMMA",
+            TokenType::LParen => "LPAREN",
+            TokenType::RParen => "RPAREN",
+            TokenType::LBracket => "LBRACKET",
+            TokenType::RBracket => "RBRACKET",
+            TokenType::Bang => "BANG",
+            TokenType::And => "AND",
+            TokenType::Or => "OR",
+            TokenType::Equal => "EQUAL",
+            TokenType::NotEqual => "NOTEQUAL",
+            TokenType::LessThan => "LESSTHAN",
+            TokenType::LessThanEqual => "LESSTHANEQUAL",
+            TokenType::GreaterThan => "GREATERTHAN",
+            TokenType::GreaterThanEqual => "GREATERTHANEQUAL",
             TokenType::In => "IN",
-            TokenType::StartsWith => "SW",
-            TokenType::EndsWith => "EW",
+            TokenType::StartsWith => "STARTSWITH",
+            TokenType::EndsWith => "ENDSWITH",
             TokenType::As => "AS",
         }
     }
 }
 
+/// Represents a token with its type and literal value.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
@@ -82,12 +85,14 @@ pub struct Token {
 }
 
 impl Token {
+    /// Creates a new Token instance.
     pub fn new(token_type: TokenType, literal: String) -> Self {
         Self { token_type, literal }
     }
 }
 
 impl fmt::Display for Token {
+    /// Formats the token as a string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}: {}", self.token_type.as_str(), self.literal)
     }
@@ -109,28 +114,28 @@ mod tests {
             (TokenType::True, "TRUE"),
             (TokenType::False, "FALSE"),
             (TokenType::Null, "NULL"),
-            (TokenType::Plus, "+"),
-            (TokenType::Minus, "-"),
-            (TokenType::Asterisk, "*"),
-            (TokenType::Slash, "/"),
-            (TokenType::Stop, "."),
-            (TokenType::Comma, ","),
-            (TokenType::LParen, "("),
-            (TokenType::RParen, ")"),
-            (TokenType::LBracket, "["),
-            (TokenType::RBracket, "]"),
-            (TokenType::Bang, "!"),
-            (TokenType::And, "&&"),
-            (TokenType::Or, "||"),
-            (TokenType::Equal, "=="),
-            (TokenType::NotEqual, "!="),
-            (TokenType::LessThan, "<"),
-            (TokenType::LessThanEqual, "<="),
-            (TokenType::GreaterThan, ">"),
-            (TokenType::GreaterThanEqual, ">="),
+            (TokenType::Plus, "PLUS"),
+            (TokenType::Minus, "MINUS"),
+            (TokenType::Asterisk, "ASTERISK"),
+            (TokenType::Slash, "SLASH"),
+            (TokenType::Stop, "STOP"),
+            (TokenType::Comma, "COMMA"),
+            (TokenType::LParen, "LPAREN"),
+            (TokenType::RParen, "RPAREN"),
+            (TokenType::LBracket, "LBRACKET"),
+            (TokenType::RBracket, "RBRACKET"),
+            (TokenType::Bang, "BANG"),
+            (TokenType::And, "AND"),
+            (TokenType::Or, "OR"),
+            (TokenType::Equal, "EQUAL"),
+            (TokenType::NotEqual, "NOTEQUAL"),
+            (TokenType::LessThan, "LESSTHAN"),
+            (TokenType::LessThanEqual, "LESSTHANEQUAL"),
+            (TokenType::GreaterThan, "GREATERTHAN"),
+            (TokenType::GreaterThanEqual, "GREATERTHANEQUAL"),
             (TokenType::In, "IN"),
-            (TokenType::StartsWith, "SW"),
-            (TokenType::EndsWith, "EW"),
+            (TokenType::StartsWith, "STARTSWITH"),
+            (TokenType::EndsWith, "ENDSWITH"),
             (TokenType::As, "AS"),
         ];
 
@@ -148,10 +153,70 @@ mod tests {
     }
 
     #[test]
-    fn test_token_fmt() {
-        let token = Token::new(TokenType::Ident, "x".into());
-        let actual = format!("{}", token);
-        let expected = "IDENT: x".to_owned();
-        assert_eq!(actual, expected);
+    fn test_token_display() {
+        let tests: Vec<(TokenType, &str, &str)> = vec![
+            (TokenType::Ident, "x", "IDENT: x"),
+            (TokenType::Integer, "42", "INTEGER: 42"),
+            (TokenType::String, "hello", "STRING: hello"),
+            (TokenType::Plus, "+", "PLUS: +"),
+            (TokenType::Minus, "-", "MINUS: -"),
+            (TokenType::Asterisk, "*", "ASTERISK: *"),
+            (TokenType::Slash, "/", "SLASH: /"),
+            (TokenType::Bang, "!", "BANG: !"),
+            (TokenType::And, "&&", "AND: &&"),
+            (TokenType::Or, "||", "OR: ||"),
+            (TokenType::Equal, "==", "EQUAL: =="),
+            (TokenType::NotEqual, "!=", "NOTEQUAL: !="),
+            (TokenType::LessThan, "<", "LESSTHAN: <"),
+            (TokenType::LessThanEqual, "<=", "LESSTHANEQUAL: <="),
+            (TokenType::GreaterThan, ">", "GREATERTHAN: >"),
+            (TokenType::GreaterThanEqual, ">=", "GREATERTHANEQUAL: >="),
+            (TokenType::Stop, ".", "STOP: ."),
+            (TokenType::Comma, ",", "COMMA: ,"),
+            (TokenType::LParen, "(", "LPAREN: ("),
+            (TokenType::RParen, ")", "RPAREN: )"),
+        ];
+
+        for (token_type, literal, expected) in tests {
+            let token = Token::new(token_type, literal.into());
+            let formatted = format!("{}", token);
+            assert_eq!(formatted, expected);
+        }
     }
+
+    #[test]
+    fn test_token_with_empty_literal() {
+        let token = Token::new(TokenType::String, String::new());
+        assert_eq!(token.literal, "");
+        assert_eq!(format!("{}", token), "STRING: ");
+    }
+
+    #[test]
+    fn test_token_with_special_characters() {
+        let tests = vec![
+            (TokenType::String, r#""hello""#),
+            (TokenType::Integer, "12345"),
+            (TokenType::Float, "3.14"),
+        ];
+
+        for (token_type, literal) in tests {
+            let token = Token::new(token_type, literal.into());
+            assert_eq!(token.literal, literal);
+            let formatted = format!("{}", token);
+            assert!(formatted.contains(literal));
+        }
+    }
+
+    #[test]
+    fn test_token_equality() {
+        let token1 = Token::new(TokenType::Ident, "x".into());
+        let token2 = Token::new(TokenType::Ident, "x".into());
+        let token3 = Token::new(TokenType::Ident, "y".into());
+        let token4 = Token::new(TokenType::Integer, "x".into());
+
+        assert_eq!(token1, token2);
+        assert_ne!(token1, token3); // Different literal
+        assert_ne!(token1, token4); // Different token type
+    }
+
 }

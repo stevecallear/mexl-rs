@@ -1,7 +1,9 @@
 use std::{collections::HashMap, fmt};
 
+/// Represents a native function that can be invoked by the VM.
 pub type NativeFn = fn(Vec<Object>) -> Result<Object, String>;
 
+/// Represents a function object.
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
@@ -9,11 +11,13 @@ pub struct Function {
 }
 
 impl PartialEq for Function {
+    /// Checks equality based on function name.
     fn eq(&self, other: &Function) -> bool { 
         self.name == other.name
     }
 }
 
+/// Represents an object.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     Null,
@@ -27,85 +31,96 @@ pub enum Object {
 }
 
 impl Default for Object {
+    /// Returns the default object, which is Null.
     fn default() -> Self {
         Object::Null
     }
 }
 
 impl Object {
-    pub fn default_integer() -> Object {
+    /// Returns the default integer object (0).
+    pub const fn default_integer() -> Object {
         Object::Integer(0)
     }
 
-    pub fn default_float() -> Object {
-        Object::Float(0_f64)
+    /// Returns the default float object (0.0).
+    pub const fn default_float() -> Object {
+        Object::Float(0.0)
     }
 
+    /// Returns the default string object (empty string).
     pub fn default_string() -> Object {
-        Object::String("".into())
+        Object::String(String::new())
     }
 
-    pub fn default_boolean() -> Object {
+    /// Returns the default boolean object (false).
+    pub const fn default_boolean() -> Object {
         Object::Boolean(false)
     }
-}
 
-pub fn cast_to_integer(obj: Object) -> Result<Object, String> {
-    match obj {
-        Object::Null => Ok(Object::default_integer()),
-        Object::Integer(_) => Ok(obj),
-        Object::Float(f) => Ok((f as i64).into()),
-        Object::String(s) => s.parse::<i64>().
-            map(Object::Integer).
-            map_err(|_| format!("cannot cast string '{}' to integer", s)),
-        _ => Err(format!("cannot cast {} to integer", obj))
+    /// Cast this object to an integer.
+    pub fn cast_to_integer(self) -> Result<Object, String> {
+        match self {
+            Object::Null => Ok(Object::default_integer()),
+            Object::Integer(_) => Ok(self),
+            Object::Float(f) => Ok((f as i64).into()),
+            Object::String(s) => s.parse::<i64>()
+                .map(Object::Integer)
+                .map_err(|_| format!("cannot cast string '{}' to integer", s)),
+            other => Err(format!("cannot cast {} to integer", other)),
+        }
+    }
+
+    /// Cast this object to a float.
+    pub fn cast_to_float(self) -> Result<Object, String> {
+        match self {
+            Object::Null => Ok(Object::default_float()),
+            Object::Integer(i) => Ok((i as f64).into()),
+            Object::Float(_) => Ok(self),
+            Object::String(s) => s.parse::<f64>()
+                .map(Object::Float)
+                .map_err(|_| format!("cannot cast string '{}' to float", s)),
+            other => Err(format!("cannot cast {} to float", other)),
+        }
+    }
+
+    /// Cast this object to a string.
+    pub fn cast_to_string(self) -> Result<Object, String> {
+        match self {
+            Object::Null => Ok(Object::default_string()),
+            Object::Integer(i) => Ok(i.to_string().into()),
+            Object::Float(f) => Ok(f.to_string().into()),
+            Object::String(_) => Ok(self),
+            Object::Boolean(b) => Ok(b.to_string().into()),
+            other => Err(format!("cannot cast {} to string", other)),
+        }
+    }
+
+    /// Cast this object to a boolean according to truthiness rules.
+    pub fn cast_to_boolean(self) -> Result<Object, String> {
+        if matches!(self, Object::Function(_)) {
+            return Err(format!("cannot cast {} to boolean", self));
+        }
+        Ok(is_truthy(&self).into())
     }
 }
 
-pub fn cast_to_float(obj: Object) -> Result<Object, String> {
-    match obj {
-        Object::Null => Ok(Object::default_float()),
-        Object::Integer(i) => Ok((i as f64).into()),
-        Object::Float(_) => Ok(obj),
-        Object::String(s) => s.parse::<f64>().
-            map(Object::Float).
-            map_err(|_| format!("cannot cast string '{}' to float", s)),
-        _ => Err(format!("cannot cast {} to float", obj))
-    }
-}
-
-pub fn cast_to_string(obj: Object) -> Result<Object, String> {
-    match obj {
-        Object::Null => Ok(Object::default_string()),
-        Object::Integer(i) => Ok(i.to_string().into()),
-        Object::Float(f) => Ok(f.to_string().into()),
-        Object::String(_) => Ok(obj),
-        Object::Boolean(b) => Ok(b.to_string().into()),
-        _ => Err(format!("cannot cast {} to string", obj))
-    }
-}
-
-pub fn cast_to_boolean(obj: Object) -> Result<Object, String> {
-    if matches!(obj, Object::Function(_)) {
-        return Err(format!("cannot cast {} to boolean", obj));
-    }
-    Ok(is_truthy(&obj).into())
-}
-
+/// Determines if an object is truthy.
 pub fn is_truthy(obj: &Object) -> bool {
     match obj {
         Object::Null => false,
-        Object::Integer(i) => if *i == 0 { false } else { true },
-        Object::Float(f) => if *f == 0.0 { false } else { true },
-        Object::String(s) => if s.as_str() == "" { false } else { true },
+        Object::Integer(i) => *i != 0,
+        Object::Float(f) => *f != 0.0,
+        Object::String(s) => !s.is_empty(),
         Object::Boolean(b) => *b,
-        Object::Array(a) => if a.len() == 0 { false } else { true },
-        Object::Map(m) => if m.len() == 0 { false } else { true },
-        Object::Function(_) => { true },
+        Object::Array(a) => !a.is_empty(),
+        Object::Map(m) => !m.is_empty(),
+        Object::Function(_) => true,
     }
 }
 
 impl fmt::Display for Object {
+    /// Formats the object as a string.
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             Object::Integer(v) => write!(f, "{}", v),
@@ -139,60 +154,74 @@ impl fmt::Display for Object {
 }
 
 impl From<i64> for Object {
+    /// Converts an i64 to an Object::Integer.
     fn from(value: i64) -> Self {
         Object::Integer(value)
     }
 }
 
 impl From<f64> for Object {
+    /// Converts an f64 to an Object::Float.
     fn from(value: f64) -> Self {
         Object::Float(value)
     }
 }
 
 impl From<&str> for Object {
+    /// Converts a &str to an Object::String.
     fn from(value: &str) -> Self {
         Object::String(value.to_owned())
     }
 }
 
 impl From<String> for Object {
+    /// Converts a String to an Object::String.
     fn from(value: String) -> Self {
         Object::String(value)
     }
 }
 
 impl From<bool> for Object {
+    /// Converts a bool to an Object::Boolean.
     fn from(value: bool) -> Self {
         Object::Boolean(value)
     }
 }
 
 impl From<Vec<Object>> for Object {
+    /// Converts a Vec<Object> to an Object::Array.
     fn from(value: Vec<Object>) -> Self {
         Object::Array(value)
     }
 }
 
 impl From<HashMap<String, Object>> for Object {
+    /// Converts a HashMap<String, Object> to an Object::Map.
     fn from(value: HashMap<String, Object>) -> Self {
         Object::Map(value)
     }
 }
 
+/// Unifies two operands by promoting types as necessary.
 pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
     match (&left, &right) {
-        (Object::Integer(_), Object::Null) => (left, Object::default_integer()),
-        (Object::Null, Object::Integer(_)) => (Object::default_integer(), right),
-        (Object::Float(_), Object::Null) => (left, Object::default_float()),
-        (Object::Null, Object::Float(_)) => (Object::default_float(), right),
-        (Object::String(_), Object::Null) => (left, Object::default_string()),
-        (Object::Null, Object::String(_)) => (Object::default_string(), right),
-        (Object::Boolean(_), Object::Null) => (left, Object::default_boolean()),
-        (Object::Null, Object::Boolean(_)) => (Object::default_boolean(), right),        
+        (_, Object::Null) => match &left {
+            Object::Integer(_) => (left, Object::default_integer()),
+            Object::Float(_) => (left, Object::default_float()),
+            Object::String(_) => (left, Object::default_string()),
+            Object::Boolean(_) => (left, Object::default_boolean()),
+            _ => (left, right),
+        },
+        (Object::Null, _) => match &right {
+            Object::Integer(_) => (Object::default_integer(), right),
+            Object::Float(_) => (Object::default_float(), right),
+            Object::String(_) => (Object::default_string(), right),
+            Object::Boolean(_) => (Object::default_boolean(), right),
+            _ => (left, right),
+        },
         (Object::Integer(l), Object::Float(_)) => (Object::Float(*l as f64), right),
         (Object::Float(_), Object::Integer(r)) => (left, Object::Float(*r as f64)),
-        _ => (left, right)
+        _ => (left, right),
     }
 }
 
@@ -221,7 +250,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            match cast_to_integer(input) {
+            match input.cast_to_integer() {
                 Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
                 Err(_) => { assert!(expected.is_err())},
             }
@@ -240,7 +269,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            match cast_to_float(input) {
+            match input.cast_to_float() {
                 Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
                 Err(_) => { assert!(expected.is_err())},
             }
@@ -259,7 +288,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            match cast_to_string(input) {
+            match input.cast_to_string() {
                 Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
                 Err(_) => { assert!(expected.is_err())},
             }
@@ -278,7 +307,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            match cast_to_boolean(input) {
+            match input.cast_to_boolean() {
                 Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
                 Err(_) => { assert!(expected.is_err())},
             }

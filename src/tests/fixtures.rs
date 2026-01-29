@@ -119,6 +119,11 @@ pub fn boolean_tests() -> Vec<TestCase> {
         TestCase { input: "false || false", expected: false.into() },
         TestCase { input: "true or false", expected: true.into() },
         TestCase { input: "false or false", expected: false.into() },
+        TestCase { input: "null eq null", expected: true.into() },
+        TestCase { input: "null ne null", expected: false.into() },
+        TestCase { input: "null == null", expected: true.into() },
+        TestCase { input: "1 != null", expected: true.into() },
+        TestCase { input: "null == 1", expected: false.into() },
     ]
 }
 
@@ -176,6 +181,16 @@ pub fn cast_tests() -> Vec<TestCase> {
     ]
 }
 
+pub fn array_tests() -> Vec<TestCase> {
+    vec![
+        TestCase {input: "len([])", expected: 0.into() },
+        TestCase {input: "len([1, 2, 3])", expected: 3.into() },
+        TestCase {input: "2 in [1, 2, 3]", expected: true.into() },
+        TestCase {input: "5 in [1, 2, 3]", expected: false.into() },
+        TestCase {input: "2 in [1, 2.0, 3]", expected: true.into() } 
+    ]
+}
+
 pub fn member_tests(env: &mut Environment) -> Vec<TestCase> {
     env.set("m_a_0", HashMap::from([
         ("m_a_1".into(), 1.into())
@@ -192,5 +207,50 @@ pub fn member_tests(env: &mut Environment) -> Vec<TestCase> {
         TestCase {input: "m_a_0.m_a_1", expected: 1.into() },
         TestCase {input: "m_b_0.m_b_1.null_field", expected: Object::default() },
         TestCase {input: "m_b_0.m_b_1.m_b_2", expected: 1.into() },
+    ]
+}
+
+pub fn null_coalescing_tests() -> Vec<TestCase> {
+    vec![
+        // Null + numeric types coalesces to numeric default (0 for int, 0.0 for float)
+        TestCase { input: "null + 5", expected: 5.into() },
+        TestCase { input: "5 + null", expected: 5.into() },
+        TestCase { input: "null + 1.5", expected: 1.5.into() },
+        TestCase { input: "1.5 + null", expected: 1.5.into() },
+    ]
+}
+
+pub struct ErrorTestCase {
+    pub input: &'static str,
+    pub should_error: bool,
+}
+
+pub fn error_cases(env: &mut Environment) -> Vec<ErrorTestCase> {
+    env.set("invalid_fn", 1.into());
+    env.set("invalid_map", 1.into());
+
+    vec![
+        ErrorTestCase { input: "null - null", should_error: true },
+        ErrorTestCase { input: "invalid_fn()", should_error: true },
+        ErrorTestCase { input: "invalid_map.x", should_error: true },
+        ErrorTestCase { input: "5 as invalid_type", should_error: true },
+        ErrorTestCase { input: r#"5 + "text""#, should_error: true },
+        ErrorTestCase { input: r#""text" - 5"#, should_error: true },
+        ErrorTestCase { input: "true + 5", should_error: true },
+        ErrorTestCase { input: r#"5 * "string""#, should_error: true },
+        ErrorTestCase { input: "len(5)", should_error: true },
+        ErrorTestCase { input: "len(true)", should_error: true },
+        ErrorTestCase { input: r#"lower(5)"#, should_error: true },
+        ErrorTestCase { input: "lower(true)", should_error: true },
+        ErrorTestCase { input: r#"upper([])"#, should_error: true },
+        
+        // Valid cases that should NOT error
+        ErrorTestCase { input: "null", should_error: false },
+        ErrorTestCase { input: r#"len(null)"#, should_error: false },
+        ErrorTestCase { input: r#"lower(null)"#, should_error: false },
+        ErrorTestCase { input: "5 + 5", should_error: false },
+        ErrorTestCase { input: r#""text" + "more""#, should_error: false },
+        ErrorTestCase { input: "null + 5", should_error: false },
+        ErrorTestCase { input: "5 == 5", should_error: false },
     ]
 }

@@ -2,33 +2,32 @@ use std::collections::HashMap;
 
 use crate::{object::{Function, NativeFn, Object}};
 
-#[derive(Debug, Clone)]
+/// Represents the environment that holds variable and function bindings.
+#[derive(Debug, Clone, Default)]
 pub struct Environment {
     values: HashMap<String, Object>
 }
 
 impl Environment {
+    /// Defines a native function in the environment.
     pub fn define_function(&mut self, name: &str, handler: NativeFn) {
-        let obj = Object::Function(Function {
-            name: name.to_owned(),
-            handler,
-        });
-        self.set(name, obj);
+        self.values.insert(
+            name.to_owned(),
+            Object::Function(Function {
+                name: name.to_owned(),
+                handler,
+            }),
+        );
     }
 
+    /// Sets a variable in the environment.
     pub fn set(&mut self, key: &str, value: Object) {
         self.values.insert(key.to_owned(), value);
     }
 
+    /// Gets a variable or function from the environment.
     pub fn get(&self, key: &str) -> Option<Object> {
-        let obj = self.values.get(key)?;
-        Some(obj.clone())
-    }
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Self { values: HashMap::new() }
+        self.values.get(key).cloned()
     }
 }
 

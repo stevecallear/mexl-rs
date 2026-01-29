@@ -1,43 +1,56 @@
 use std::{fmt::{self}, ops::{Deref, DerefMut}};
 
+/// Represents a sequence of bytecode instructions.
 #[derive(Debug, Clone)]
 pub struct Instructions(pub Vec<u8>);
 
 impl Instructions {
+    /// Creates a new, empty Instructions instance.
     pub fn new() -> Self { Self(Vec::new()) }
 }
 
 impl Deref for Instructions {
+    /// The target type when dereferencing Instructions.
     type Target = Vec<u8>;
+
+    /// Dereferences the Instructions to access the underlying byte vector.
     fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl DerefMut for Instructions {
+    /// Dereferences the Instructions to access the underlying byte vector mutably.
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
 impl fmt::Display for Instructions {
+    /// Formats the Instructions as a human-readable string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut out = String::new();
-        let mut i: usize = 0;
+        let mut i = 0;
         while i < self.len() {
             let op: Opcode = self.0[i].into();
             let def = op.lookup();
 
             let (operands, offset) = read_operands(&def, &self.0[i + 1..]);
-            out.push_str(format!("{:04} {}\n", i, format_instruction(&def, &operands)).as_str());
+            writeln!(f, "{:04} {}", i, format_instruction(&def, &operands))?;
 
             i += 1 + offset;
         }
-        write!(f, "{}", out)
+        Ok(())
     }
 }
 
+/// Represents the definition of an opcode, including its name and operand widths.
 pub struct Definition {
     pub name: &'static str,
     pub operand_widths: &'static [usize],   
 }
 
+// Shared constants for operand widths to avoid repeated allocations
+const NO_OPERANDS: &[usize] = &[];
+const ONE_OPERAND: &[usize] = &[2];
+const ONE_BYTE_OPERAND: &[usize] = &[1];
+
+/// Defines the opcodes used in the bytecode.
 macro_rules! define_opcodes {
     ($($name:ident),*) => {
         #[repr(u8)]
@@ -86,126 +99,48 @@ define_opcodes!(
     OpPop
 );
 
+// Cast type codes
 pub const CAST_INT: u8 = 0;
 pub const CAST_FLOAT: u8 = 1;
 pub const CAST_STRING: u8 = 2;
 pub const CAST_BOOL: u8 = 3;
 
 impl Opcode {
+    /// Looks up the definition of the opcode.
     fn lookup(&self) -> Definition {
         match self {        
-            Opcode::OpGlobal => Definition {
-                name: "OpGlobal",
-                operand_widths: &[2],
-            },
-            Opcode::OpConstant => Definition { 
-                name: "OpConstant", 
-                operand_widths: &[2],
-            },
-            Opcode::OpArray => Definition {
-                name: "OpArray",
-                operand_widths: &[2],
-            },
-            Opcode::OpTrue => Definition {
-                name: "OpTrue", 
-                operand_widths: &[],
-            },
-            Opcode::OpFalse => Definition {
-                name: "OpFalse", 
-                operand_widths: &[],
-            },
-            Opcode::OpNull => Definition {
-                name: "OpNull", 
-                operand_widths: &[],
-            },
-            Opcode::OpAdd => Definition {
-                name: "OpAdd", 
-                operand_widths: &[],
-            },
-            Opcode::OpSubtract => Definition {
-                name: "OpSubtract", 
-                operand_widths: &[],
-            },
-            Opcode::OpMultiply => Definition {
-                name: "OpMultiply", 
-                operand_widths: &[],
-            },
-            Opcode::OpDivide => Definition {
-                name: "OpDivide", 
-                operand_widths: &[],
-            },          
-            Opcode::OpEqual => Definition {
-                name: "OpEqual",
-                operand_widths: &[],
-            },
-            Opcode::OpNotEqual => Definition {
-                name: "OpNotEqual",
-                operand_widths: &[],
-            },
-            Opcode::OpLess => Definition {
-                name: "OpLess",
-                operand_widths: &[],
-            },
-            Opcode::OpLessOrEqual => Definition {
-                name: "OpLessOrEqual",
-                operand_widths: &[],
-            },
-            Opcode::OpGreater => Definition {
-                name: "OpGreater",
-                operand_widths: &[],
-            },
-            Opcode::OpGreaterOrEqual => Definition {
-                name: "OpGreaterOrEqual",
-                operand_widths: &[],
-            },
-            Opcode::OpStartsWith => Definition {
-                name: "OpStartsWith",
-                operand_widths: &[],
-            },
-            Opcode::OpEndsWith => Definition {
-                name: "OpEndsWith",
-                operand_widths: &[],
-            },
-            Opcode::OpIn => Definition {
-                name: "OpIn",
-                operand_widths: &[],
-            },
-            Opcode::OpNot => Definition {
-                name: "OpNot", 
-                operand_widths: &[],
-            },
-            Opcode::OpMinus => Definition {
-                name: "OpMinus", 
-                operand_widths: &[],
-            },
-            Opcode::OpMember => Definition {
-                name: "OpMember",
-                operand_widths: &[2],
-            },
-            Opcode::OpCall => Definition {
-                name: "OpCall",
-                operand_widths: &[2],
-            },
-            Opcode::OpCast => Definition {
-                name: "OpCast",
-                operand_widths: &[1],
-            },
-            Opcode::OpJumpTruthy => Definition {
-                name: "OpJumpTruthy",
-                operand_widths: &[2],
-            },
-            Opcode::OpJumpNotTruthy => Definition {
-                name: "OpJumpNotTruthy",
-                operand_widths: &[2],
-            },
-            Opcode::OpPop => Definition {
-                name: "OpPop", 
-                operand_widths: &[],
-            },
+            Opcode::OpGlobal => Definition { name: "OpGlobal", operand_widths: ONE_OPERAND },
+            Opcode::OpConstant => Definition { name: "OpConstant", operand_widths: ONE_OPERAND },
+            Opcode::OpArray => Definition { name: "OpArray", operand_widths: ONE_OPERAND },
+            Opcode::OpTrue => Definition { name: "OpTrue", operand_widths: NO_OPERANDS },
+            Opcode::OpFalse => Definition { name: "OpFalse", operand_widths: NO_OPERANDS },
+            Opcode::OpNull => Definition { name: "OpNull", operand_widths: NO_OPERANDS },
+            Opcode::OpAdd => Definition { name: "OpAdd", operand_widths: NO_OPERANDS },
+            Opcode::OpSubtract => Definition { name: "OpSubtract", operand_widths: NO_OPERANDS },
+            Opcode::OpMultiply => Definition { name: "OpMultiply", operand_widths: NO_OPERANDS },
+            Opcode::OpDivide => Definition { name: "OpDivide", operand_widths: NO_OPERANDS },          
+            Opcode::OpEqual => Definition { name: "OpEqual", operand_widths: NO_OPERANDS },
+            Opcode::OpNotEqual => Definition { name: "OpNotEqual", operand_widths: NO_OPERANDS },
+            Opcode::OpLess => Definition { name: "OpLess", operand_widths: NO_OPERANDS },
+            Opcode::OpLessOrEqual => Definition { name: "OpLessOrEqual", operand_widths: NO_OPERANDS },
+            Opcode::OpGreater => Definition { name: "OpGreater", operand_widths: NO_OPERANDS },
+            Opcode::OpGreaterOrEqual => Definition { name: "OpGreaterOrEqual", operand_widths: NO_OPERANDS },
+            Opcode::OpStartsWith => Definition { name: "OpStartsWith", operand_widths: NO_OPERANDS },
+            Opcode::OpEndsWith => Definition { name: "OpEndsWith", operand_widths: NO_OPERANDS },
+            Opcode::OpIn => Definition { name: "OpIn", operand_widths: NO_OPERANDS },
+            Opcode::OpNot => Definition { name: "OpNot", operand_widths: NO_OPERANDS },
+            Opcode::OpMinus => Definition { name: "OpMinus", operand_widths: NO_OPERANDS },
+            Opcode::OpMember => Definition { name: "OpMember", operand_widths: ONE_OPERAND },
+            Opcode::OpCall => Definition { name: "OpCall", operand_widths: ONE_OPERAND },
+            Opcode::OpCast => Definition { name: "OpCast", operand_widths: ONE_BYTE_OPERAND },
+            Opcode::OpJumpTruthy => Definition { name: "OpJumpTruthy", operand_widths: ONE_OPERAND },
+            Opcode::OpJumpNotTruthy => Definition { name: "OpJumpNotTruthy", operand_widths: ONE_OPERAND },
+            Opcode::OpPop => Definition { name: "OpPop", operand_widths: NO_OPERANDS },
         }
     }
 }
 
+/// Creates a bytecode instruction for the given opcode and operands.
 pub fn make(op: Opcode, operands: &[usize]) -> Instructions {
     let def = op.lookup();
     
@@ -230,32 +165,28 @@ pub fn make(op: Opcode, operands: &[usize]) -> Instructions {
     Instructions(instruction)
 }
 
+/// Reads operands from the instruction byte slice based on the definition.
 pub fn read_operands(def: &Definition, instructions: &[u8]) -> (Vec<usize>, usize) {
     let mut operands = Vec::with_capacity(def.operand_widths.len());
     let mut offset = 0;
 
     for &width in def.operand_widths {
-        match width {
+        let value = match width {
             2 => {
-                let slice = &instructions[offset..offset+2];
-                let arr: [u8; 2] = slice.try_into().unwrap();
-                let val = u16::from_be_bytes(arr);
-                
-                operands.push(val as usize);
-                offset += 2;
+                let arr: [u8; 2] = instructions[offset..offset+2].try_into().unwrap();
+                u16::from_be_bytes(arr) as usize
             },
-            1 => {
-                let val = instructions[offset];
-                operands.push(val as usize);
-                offset += 1;
-            },
+            1 => instructions[offset] as usize,
             _ => panic!("operand width {} not supported", width)
-        }
+        };
+        operands.push(value);
+        offset += width;
     }
 
     (operands, offset)
 }
 
+/// Formats an instruction into a human-readable string.
 fn format_instruction(def: &Definition, operands: &[usize]) -> String {
     let count = def.operand_widths.len();
     if operands.len() != count {
@@ -263,7 +194,7 @@ fn format_instruction(def: &Definition, operands: &[usize]) -> String {
     }
     match count {
         0 => def.name.to_string(),
-        1 => format!("{} {}", def.name.to_string(), operands[0]),
+        1 => format!("{} {}", def.name, operands[0]),
         _ => format!("ERROR: unhandled operand count: {}", count),
     }
 }
