@@ -2,3 +2,10 @@
 name = "mexl"
 version = "0.1.0"
 edition = "2024"
+
+[features]
+default = []
+serde = ["dep:serde_json"]
+
+[dependencies]
+serde_json = { version = "1.0.149", optional = true }

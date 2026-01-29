@@ -38,13 +38,13 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --verbose --all-features
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose --all-features
 
       - name: Check formatting
         run: cargo fmt -- --check
 
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-features -- -D warnings

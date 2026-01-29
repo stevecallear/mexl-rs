@@ -204,6 +204,32 @@ impl From<HashMap<String, Object>> for Object {
     }
 }
 
+#[cfg(feature = "serde")]
+impl From<serde_json::Value> for Object {
+    /// Converts a Value to an Object.
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => Object::Null,
+            serde_json::Value::Bool(b) => Object::Boolean(b),
+            serde_json::Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    Object::Integer(i)
+                } else {
+                    Object::Float(n.as_f64().unwrap_or(0.0))
+                }
+            }
+            serde_json::Value::String(s) => Object::String(s),
+            serde_json::Value::Array(arr) => {
+                Object::Array(arr.into_iter().map(Object::from).collect())
+            }
+            serde_json::Value::Object(map) => {
+                let obj_map = map.into_iter().map(|(k, v)| (k, Object::from(v))).collect();
+                Object::Map(obj_map)
+            }
+        }
+    }
+}
+
 /// Unifies two operands by promoting types as necessary.
 pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
     match (&left, &right) {
@@ -228,6 +254,7 @@ pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
 }
 
 #[cfg(test)]
+#[cfg(feature = "serde")]
 mod tests {
     use super::*;
 
@@ -511,5 +538,110 @@ mod tests {
 
         assert_eq!(fn1a, fn1b);
         assert_ne!(fn1a, fn2);
+    }
+
+    #[test]
+    fn test_serde_json_value_conversion() {
+        struct TestCase {
+            input: serde_json::Value,
+            expected: Object,
+        }
+
+        let tests = vec![
+            TestCase {
+                input: serde_json::json!(null),
+                expected: Object::Null,
+            },
+            TestCase {
+                input: serde_json::json!(true),
+                expected: Object::Boolean(true),
+            },
+            TestCase {
+                input: serde_json::json!(false),
+                expected: Object::Boolean(false),
+            },
+            TestCase {
+                input: serde_json::json!(42),
+                expected: Object::Integer(42),
+            },
+            TestCase {
+                input: serde_json::json!(-100),
+                expected: Object::Integer(-100),
+            },
+            TestCase {
+                input: serde_json::json!(3.14),
+                expected: Object::Float(3.14),
+            },
+            TestCase {
+                input: serde_json::json!(-2.71),
+                expected: Object::Float(-2.71),
+            },
+            TestCase {
+                input: serde_json::json!("hello"),
+                expected: Object::String("hello".into()),
+            },
+            TestCase {
+                input: serde_json::json!([1, "two", 3.0, true, null]),
+                expected: Object::Array(vec![
+                    Object::Integer(1),
+                    Object::String("two".into()),
+                    Object::Float(3.0),
+                    Object::Boolean(true),
+                    Object::Null,
+                ]),
+            },
+            TestCase {
+                input: serde_json::json!([]),
+                expected: Object::Array(vec![]),
+            },
+            TestCase {
+                input: serde_json::json!({
+                    "name": "Alice",
+                    "age": 30,
+                    "score": 95.5,
+                    "active": true
+                }),
+                expected: {
+                    let mut map = HashMap::new();
+                    map.insert("name".into(), Object::String("Alice".into()));
+                    map.insert("age".into(), Object::Integer(30));
+                    map.insert("score".into(), Object::Float(95.5));
+                    map.insert("active".into(), Object::Boolean(true));
+                    Object::Map(map)
+                },
+            },
+            TestCase {
+                input: serde_json::json!({}),
+                expected: Object::Map(HashMap::new()),
+            },
+            TestCase {
+                input: serde_json::json!({
+                    "user": {
+                        "id": 1,
+                        "tags": ["rust", "coding"]
+                    }
+                }),
+                expected: {
+                    let mut inner_map = HashMap::new();
+                    inner_map.insert("id".into(), Object::Integer(1));
+                    inner_map.insert(
+                        "tags".into(),
+                        Object::Array(vec![
+                            Object::String("rust".into()),
+                            Object::String("coding".into()),
+                        ]),
+                    );
+
+                    let mut outer_map = HashMap::new();
+                    outer_map.insert("user".into(), Object::Map(inner_map));
+                    Object::Map(outer_map)
+                },
+            },
+        ];
+
+        for test in tests {
+            let actual = Object::from(test.input);
+            assert_eq!(actual, test.expected);
+        }
     }
 }
