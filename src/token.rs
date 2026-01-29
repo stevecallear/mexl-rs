@@ -87,7 +87,10 @@ pub struct Token {
 impl Token {
     /// Creates a new Token instance.
     pub fn new(token_type: TokenType, literal: String) -> Self {
-        Self { token_type, literal }
+        Self {
+            token_type,
+            literal,
+        }
     }
 }
 
@@ -148,7 +151,10 @@ mod tests {
     #[test]
     fn test_token_new() {
         let token = Token::new(TokenType::Ident, "x".into());
-        let expected = Token { token_type: TokenType::Ident, literal: "x".into() };
+        let expected = Token {
+            token_type: TokenType::Ident,
+            literal: "x".into(),
+        };
         assert_eq!(token, expected);
     }
 
@@ -218,5 +224,4 @@ mod tests {
         assert_ne!(token1, token3); // Different literal
         assert_ne!(token1, token4); // Different token type
     }
-
 }

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{object::{Function, NativeFn, Object}};
+use crate::object::{Function, NativeFn, Object};
 
 /// Represents the environment that holds variable and function bindings.
 #[derive(Debug, Clone, Default)]
 pub struct Environment {
-    values: HashMap<String, Object>
+    values: HashMap<String, Object>,
 }
 
 impl Environment {

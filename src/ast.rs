@@ -31,31 +31,32 @@ impl fmt::Display for Expression {
                 write!(f, "[")?;
                 for (i, obj) in v.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ")?;                    
+                        write!(f, ", ")?;
                     }
                     write!(f, "{}", obj)?;
                 }
                 write!(f, "]")
-            },
+            }
             Expression::Boolean(v) => write!(f, "{}", v),
             Expression::Null => write!(f, "null"),
             Expression::Prefix(v) => {
-                match v.operator.len() { // ensure readability for longer operators
+                match v.operator.len() {
+                    // ensure readability for longer operators
                     l if l <= 1 => write!(f, "({}{})", v.operator, v.right),
                     _ => write!(f, "({} {})", v.operator, v.right),
                 }
-            },
+            }
             Expression::Infix(v) => write!(f, "({} {} {})", v.left, v.operator, v.right),
             Expression::Call(v) => {
                 write!(f, "{}(", v.function)?;
                 for (i, obj) in v.arguments.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ")?;                    
+                        write!(f, ", ")?;
                     }
                     write!(f, "{}", obj)?;
                 }
                 write!(f, ")")
-            },
+            }
             Expression::Member(v) => write!(f, "({}.{})", v.left, v.member),
             Expression::Cast(v) => write!(f, "({} as {})", v.left, v.target_type),
         }
@@ -113,11 +114,10 @@ pub struct CastExpression {
     pub target_type: Identifier,
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::token::{Token, TokenType};
     use super::*;
+    use crate::token::{Token, TokenType};
 
     #[test]
     fn test_expression_fmt() {
@@ -125,59 +125,69 @@ mod tests {
             (Expression::IntegerLiteral(1), "1"),
             (Expression::FloatLiteral(1.5), "1.5"),
             (Expression::StringLiteral("abc".into()), r#""abc""#),
-            (Expression::ArrayLiteral(vec![
-                Expression::IntegerLiteral(1),
+            (
+                Expression::ArrayLiteral(vec![
+                    Expression::IntegerLiteral(1),
+                    Expression::Prefix(Box::new(PrefixExpression {
+                        token: Token::new(TokenType::Minus, "-".into()),
+                        operator: "-".into(),
+                        right: Box::new(Expression::FloatLiteral(1.5)),
+                    })),
+                    Expression::StringLiteral("abc".into()),
+                ]),
+                r#"[1, (-1.5), "abc"]"#,
+            ),
+            (Expression::Boolean(true), "true"),
+            (Expression::Boolean(false), "false"),
+            (Expression::Null, "null"),
+            (
                 Expression::Prefix(Box::new(PrefixExpression {
                     token: Token::new(TokenType::Minus, "-".into()),
-                    operator: "-".into(), 
-                    right: Box::new(Expression::FloatLiteral(1.5)),
+                    operator: "-".into(),
+                    right: Box::new(Expression::IntegerLiteral(1)),
                 })),
-                Expression::StringLiteral("abc".into()),                
-            ]), r#"[1, (-1.5), "abc"]"#),
-            (Expression::Boolean(true), "true"),
-            (Expression::Boolean(false), "false"),           
-            (Expression::Null, "null"),
-            (Expression::Prefix(Box::new(PrefixExpression {
-                token: Token::new(TokenType::Minus, "-".into()),
-                operator: "-".into(), 
-                right: Box::new(Expression::IntegerLiteral(1)),
-            })), "(-1)"),
-            (Expression::Prefix(Box::new(PrefixExpression {
-                token: Token::new(TokenType::Bang, "not".into()),
-                operator: "not".into(), 
-                right: Box::new(Expression::Boolean(true)),
-            })), "(not true)"),
-            (Expression::Infix(Box::new(InfixExpression {
-                token: Token::new(TokenType::Plus, "+".into()),
-                left: Box::new(Expression::IntegerLiteral(1)),
-                operator: "+".into(), 
-                right: Box::new(Expression::IntegerLiteral(2)),
-            })), "(1 + 2)"),
-            (Expression::Member(Box::new(MemberExpression { 
-                left: Box::new(Expression::Identifier(Identifier { 
-                    value: "x".into(),
+                "(-1)",
+            ),
+            (
+                Expression::Prefix(Box::new(PrefixExpression {
+                    token: Token::new(TokenType::Bang, "not".into()),
+                    operator: "not".into(),
+                    right: Box::new(Expression::Boolean(true)),
                 })),
-                member: Identifier {
-                    value: "y".into(),
-                },
-            })), "(x.y)"),
-            (Expression::Cast(Box::new(CastExpression {
-                left: Box::new(Expression::Identifier(Identifier { 
-                    value: "x".into(),
+                "(not true)",
+            ),
+            (
+                Expression::Infix(Box::new(InfixExpression {
+                    token: Token::new(TokenType::Plus, "+".into()),
+                    left: Box::new(Expression::IntegerLiteral(1)),
+                    operator: "+".into(),
+                    right: Box::new(Expression::IntegerLiteral(2)),
                 })),
-                target_type: Identifier {
-                    value: "float".into(),
-                },
-            })), "(x as float)"),
-            (Expression::Call(Box::new(CallExpression { 
-                function: Box::new(Expression::Identifier(Identifier {
-                    value: "fn".into(),
+                "(1 + 2)",
+            ),
+            (
+                Expression::Member(Box::new(MemberExpression {
+                    left: Box::new(Expression::Identifier(Identifier { value: "x".into() })),
+                    member: Identifier { value: "y".into() },
                 })),
-                arguments: vec![
-                    Expression::IntegerLiteral(1),
-                    Expression::IntegerLiteral(2),
-                ],
-             })), "fn(1, 2)")
+                "(x.y)",
+            ),
+            (
+                Expression::Cast(Box::new(CastExpression {
+                    left: Box::new(Expression::Identifier(Identifier { value: "x".into() })),
+                    target_type: Identifier {
+                        value: "float".into(),
+                    },
+                })),
+                "(x as float)",
+            ),
+            (
+                Expression::Call(Box::new(CallExpression {
+                    function: Box::new(Expression::Identifier(Identifier { value: "fn".into() })),
+                    arguments: vec![Expression::IntegerLiteral(1), Expression::IntegerLiteral(2)],
+                })),
+                "fn(1, 2)",
+            ),
         ];
 
         for (input, expected) in tests {

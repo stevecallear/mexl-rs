@@ -12,7 +12,7 @@ pub struct Function {
 
 impl PartialEq for Function {
     /// Checks equality based on function name.
-    fn eq(&self, other: &Function) -> bool { 
+    fn eq(&self, other: &Function) -> bool {
         self.name == other.name
     }
 }
@@ -64,7 +64,8 @@ impl Object {
             Object::Null => Ok(Object::default_integer()),
             Object::Integer(_) => Ok(self),
             Object::Float(f) => Ok((f as i64).into()),
-            Object::String(s) => s.parse::<i64>()
+            Object::String(s) => s
+                .parse::<i64>()
                 .map(Object::Integer)
                 .map_err(|_| format!("cannot cast string '{}' to integer", s)),
             other => Err(format!("cannot cast {} to integer", other)),
@@ -77,7 +78,8 @@ impl Object {
             Object::Null => Ok(Object::default_float()),
             Object::Integer(i) => Ok((i as f64).into()),
             Object::Float(_) => Ok(self),
-            Object::String(s) => s.parse::<f64>()
+            Object::String(s) => s
+                .parse::<f64>()
                 .map(Object::Float)
                 .map_err(|_| format!("cannot cast string '{}' to float", s)),
             other => Err(format!("cannot cast {} to float", other)),
@@ -131,17 +133,17 @@ impl fmt::Display for Object {
                 write!(f, "[")?;
                 for (i, obj) in v.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ")?;                    
+                        write!(f, ", ")?;
                     }
                     write!(f, "{}", obj)?;
                 }
                 write!(f, "]")
-            },
+            }
             Object::Map(v) => {
                 write!(f, "{{")?;
                 for (i, (k, v)) in v.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ")?;                    
+                        write!(f, ", ")?;
                     }
                     write!(f, "\"{}\": {}", k, v)?;
                 }
@@ -251,8 +253,12 @@ mod tests {
 
         for (input, expected) in tests {
             match input.cast_to_integer() {
-                Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
-                Err(_) => { assert!(expected.is_err())},
+                Ok(actual) => {
+                    assert_eq!(actual, expected.unwrap());
+                }
+                Err(_) => {
+                    assert!(expected.is_err())
+                }
             }
         }
     }
@@ -270,8 +276,12 @@ mod tests {
 
         for (input, expected) in tests {
             match input.cast_to_float() {
-                Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
-                Err(_) => { assert!(expected.is_err())},
+                Ok(actual) => {
+                    assert_eq!(actual, expected.unwrap());
+                }
+                Err(_) => {
+                    assert!(expected.is_err())
+                }
             }
         }
     }
@@ -289,8 +299,12 @@ mod tests {
 
         for (input, expected) in tests {
             match input.cast_to_string() {
-                Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
-                Err(_) => { assert!(expected.is_err())},
+                Ok(actual) => {
+                    assert_eq!(actual, expected.unwrap());
+                }
+                Err(_) => {
+                    assert!(expected.is_err())
+                }
             }
         }
     }
@@ -300,16 +314,23 @@ mod tests {
         let tests: Vec<(Object, Result<Object, String>)> = vec![
             (1.into(), Ok(true.into())),
             (0.0.into(), Ok(false.into())),
-            (Object::Function(Function { 
-                name: "fn".into(), 
-                handler: |_| unreachable!(),
-             }), Err("".into()))
+            (
+                Object::Function(Function {
+                    name: "fn".into(),
+                    handler: |_| unreachable!(),
+                }),
+                Err("".into()),
+            ),
         ];
 
         for (input, expected) in tests {
             match input.cast_to_boolean() {
-                Ok(actual) => { assert_eq!(actual, expected.unwrap()); }
-                Err(_) => { assert!(expected.is_err())},
+                Ok(actual) => {
+                    assert_eq!(actual, expected.unwrap());
+                }
+                Err(_) => {
+                    assert!(expected.is_err())
+                }
             }
         }
     }
@@ -322,19 +343,33 @@ mod tests {
             (Object::String("abc".into()), r#""abc""#),
             (Object::Boolean(true), "true"),
             (Object::Boolean(false), "false"),
-            (vec![
-                1.into(), 1.5.into(), "abc".into(), true.into(), Object::Null
-            ].into(), r#"[1, 1.5, "abc", true, null]"#),
-            (HashMap::from([
-                ("x".into(), HashMap::from([
-                    ("y".into(), true.into())
-                ]).into())
-            ]).into(), r#"{"x": {"y": true}}"#),
+            (
+                vec![
+                    1.into(),
+                    1.5.into(),
+                    "abc".into(),
+                    true.into(),
+                    Object::Null,
+                ]
+                .into(),
+                r#"[1, 1.5, "abc", true, null]"#,
+            ),
+            (
+                HashMap::from([(
+                    "x".into(),
+                    HashMap::from([("y".into(), true.into())]).into(),
+                )])
+                .into(),
+                r#"{"x": {"y": true}}"#,
+            ),
             (Object::Null, "null"),
-            (Object::Function(Function { 
-                name: "test".to_owned(),
-                handler: |_| unreachable!(),
-            }), "fn:test"),
+            (
+                Object::Function(Function {
+                    name: "test".to_owned(),
+                    handler: |_| unreachable!(),
+                }),
+                "fn:test",
+            ),
         ];
 
         for (input, expected) in tests {
@@ -361,10 +396,13 @@ mod tests {
             (vec![].into(), false),
             (HashMap::from([("key".to_owned(), 1.into())]).into(), true),
             (HashMap::from([]).into(), false),
-            (Object::Function(Function { 
-                name: "fn".into(), 
-                handler: |_| unreachable!(),
-            }), true),
+            (
+                Object::Function(Function {
+                    name: "fn".into(),
+                    handler: |_| unreachable!(),
+                }),
+                true,
+            ),
         ];
 
         for (input, expected) in tests {
@@ -383,16 +421,66 @@ mod tests {
         }
 
         let tests = vec![
-            TestCase { input_left: 1.into(), input_right: Object::Null, expected_left: 1.into(), expected_right: 0.into() },
-            TestCase { input_left: Object::Null, input_right: 1.into(), expected_left: 0.into(), expected_right: 1.into() },
-            TestCase { input_left: 1.5.into(), input_right: Object::Null, expected_left: 1.5.into(), expected_right: 0.0.into() },
-            TestCase { input_left: Object::Null, input_right: 1.5.into(), expected_left: 0.0.into(), expected_right: 1.5.into() },
-            TestCase { input_left: "a".into(), input_right: Object::Null, expected_left: "a".into(), expected_right: "".into() },
-            TestCase { input_left: Object::Null, input_right: "a".into(), expected_left: "".into(), expected_right: "a".into() },
-            TestCase { input_left: true.into(), input_right: Object::Null, expected_left: true.into(), expected_right: false.into() },
-            TestCase { input_left: Object::Null, input_right: true.into(), expected_left: false.into(), expected_right: true.into() },
-            TestCase { input_left: 1.into(), input_right: 1.5.into(), expected_left: 1.0.into(), expected_right: 1.5.into() },
-            TestCase { input_left: 1.5.into(), input_right: 1.into(), expected_left: 1.5.into(), expected_right: 1.0.into() },
+            TestCase {
+                input_left: 1.into(),
+                input_right: Object::Null,
+                expected_left: 1.into(),
+                expected_right: 0.into(),
+            },
+            TestCase {
+                input_left: Object::Null,
+                input_right: 1.into(),
+                expected_left: 0.into(),
+                expected_right: 1.into(),
+            },
+            TestCase {
+                input_left: 1.5.into(),
+                input_right: Object::Null,
+                expected_left: 1.5.into(),
+                expected_right: 0.0.into(),
+            },
+            TestCase {
+                input_left: Object::Null,
+                input_right: 1.5.into(),
+                expected_left: 0.0.into(),
+                expected_right: 1.5.into(),
+            },
+            TestCase {
+                input_left: "a".into(),
+                input_right: Object::Null,
+                expected_left: "a".into(),
+                expected_right: "".into(),
+            },
+            TestCase {
+                input_left: Object::Null,
+                input_right: "a".into(),
+                expected_left: "".into(),
+                expected_right: "a".into(),
+            },
+            TestCase {
+                input_left: true.into(),
+                input_right: Object::Null,
+                expected_left: true.into(),
+                expected_right: false.into(),
+            },
+            TestCase {
+                input_left: Object::Null,
+                input_right: true.into(),
+                expected_left: false.into(),
+                expected_right: true.into(),
+            },
+            TestCase {
+                input_left: 1.into(),
+                input_right: 1.5.into(),
+                expected_left: 1.0.into(),
+                expected_right: 1.5.into(),
+            },
+            TestCase {
+                input_left: 1.5.into(),
+                input_right: 1.into(),
+                expected_left: 1.5.into(),
+                expected_right: 1.0.into(),
+            },
         ];
 
         for test in tests {
@@ -406,18 +494,18 @@ mod tests {
     fn test_function_eq() {
         let handler: NativeFn = |_| Err("error".into());
 
-        let fn1a = Object::Function(Function { 
-            name: "fn1".to_owned(), 
+        let fn1a = Object::Function(Function {
+            name: "fn1".to_owned(),
             handler,
         });
 
-         let fn1b = Object::Function(Function { 
-            name: "fn1".to_owned(), 
+        let fn1b = Object::Function(Function {
+            name: "fn1".to_owned(),
             handler,
         });
 
-         let fn2 = Object::Function(Function { 
-            name: "fn2".to_owned(), 
+        let fn2 = Object::Function(Function {
+            name: "fn2".to_owned(),
             handler,
         });
 

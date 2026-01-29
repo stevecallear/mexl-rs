@@ -1,4 +1,4 @@
-use crate::{Object};
+use crate::Object;
 
 /// Returns the length of a string or array.
 pub fn len(args: Vec<Object>) -> Result<Object, String> {
@@ -10,7 +10,7 @@ pub fn len(args: Vec<Object>) -> Result<Object, String> {
         Object::String(s) => Ok((s.len() as i64).into()),
         Object::Array(a) => Ok((a.len() as i64).into()),
         Object::Null => Ok(Object::default_integer()),
-        _ => Err(format!("len: argument not supported: {}", args[0]))
+        _ => Err(format!("len: argument not supported: {}", args[0])),
     }
 }
 
@@ -23,7 +23,7 @@ pub fn lower(args: Vec<Object>) -> Result<Object, String> {
     match &args[0] {
         Object::String(s) => Ok(s.to_lowercase().into()),
         Object::Null => Ok(Object::default_string()),
-        _ => Err(format!("lower: argument not supported: {}", args[0]))
+        _ => Err(format!("lower: argument not supported: {}", args[0])),
     }
 }
 
@@ -36,7 +36,7 @@ pub fn upper(args: Vec<Object>) -> Result<Object, String> {
     match &args[0] {
         Object::String(s) => Ok(s.to_uppercase().into()),
         Object::Null => Ok(Object::default_string()),
-        _ => Err(format!("upper: argument not supported: {}", args[0]))
+        _ => Err(format!("upper: argument not supported: {}", args[0])),
     }
 }
 
@@ -44,7 +44,7 @@ pub fn upper(args: Vec<Object>) -> Result<Object, String> {
 mod tests {
     use super::*;
 
-     #[test]
+    #[test]
     fn test_len() {
         let tests: Vec<(Vec<Object>, Result<Object, String>)> = vec![
             (vec![], Err("".into())),
@@ -52,12 +52,14 @@ mod tests {
             (vec![true.into()], Err("".into())),
             (vec!["abc".into()], Ok(3.into())),
             (vec![vec![1.into(), 2.into()].into()], Ok(2.into())),
-            (vec![Object::Null], Ok(0.into())),            
+            (vec![Object::Null], Ok(0.into())),
         ];
 
         for (input, expected) in tests {
             let actual = len(input);
-            if actual.is_err() && expected.is_err() { continue }
+            if actual.is_err() && expected.is_err() {
+                continue;
+            }
 
             assert_eq!(actual.unwrap(), expected.unwrap());
         }
@@ -70,30 +72,34 @@ mod tests {
             (vec!["A".into(), "B".into()], Err("".into())),
             (vec![1.into()], Err("".into())),
             (vec!["AbC".into()], Ok("abc".into())),
-            (vec![Object::Null], Ok("".into())),            
+            (vec![Object::Null], Ok("".into())),
         ];
 
         for (input, expected) in tests {
             let actual = lower(input);
-            if actual.is_err() && expected.is_err() { continue }
+            if actual.is_err() && expected.is_err() {
+                continue;
+            }
 
             assert_eq!(actual.unwrap(), expected.unwrap());
         }
     }
 
-     #[test]
+    #[test]
     fn test_upper() {
         let tests: Vec<(Vec<Object>, Result<Object, String>)> = vec![
             (vec![], Err("".into())),
             (vec!["a".into(), "b".into()], Err("".into())),
             (vec![1.into()], Err("".into())),
             (vec!["aBC".into()], Ok("ABC".into())),
-            (vec![Object::Null], Ok("".into())),            
+            (vec![Object::Null], Ok("".into())),
         ];
 
         for (input, expected) in tests {
             let actual = upper(input);
-            if actual.is_err() && expected.is_err() { continue }
+            if actual.is_err() && expected.is_err() {
+                continue;
+            }
 
             assert_eq!(actual.unwrap(), expected.unwrap());
         }

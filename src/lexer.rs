@@ -28,13 +28,13 @@ fn keyword_token_type(input: &str) -> Option<TokenType> {
         "sw" => Some(TokenType::StartsWith),
         "ew" => Some(TokenType::EndsWith),
         "as" => Some(TokenType::As),
-        _ => None
+        _ => None,
     }
 }
 
 /// Lexer for tokenizing input strings.
 pub struct Lexer<'a> {
-    input: &'a[u8],
+    input: &'a [u8],
     pos: usize,
     read_pos: usize,
     ch: u8,
@@ -42,7 +42,7 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// Creates a new Lexer for the given input string.
-    pub fn new(input: &'a str) -> Self {        
+    pub fn new(input: &'a str) -> Self {
         let mut l = Self {
             input: input.as_bytes(),
             pos: 0,
@@ -58,28 +58,35 @@ impl<'a> Lexer<'a> {
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let mut skip_read = false;
-        
+
         let token = match self.ch {
-            0 => Token { token_type: TokenType::EOF, literal: "".into() },
-            
+            0 => Token {
+                token_type: TokenType::EOF,
+                literal: "".into(),
+            },
+
             b'"' => {
                 skip_read = true;
                 self.read_string()
             }
 
-            b'.' => {
-                match self.peek_char() {
-                    c if c.is_ascii_digit() => {
-                        skip_read = true;
-                        self.read_number()
-                    },
-                    _ => new_token!(TokenType::Stop, self.ch)
+            b'.' => match self.peek_char() {
+                c if c.is_ascii_digit() => {
+                    skip_read = true;
+                    self.read_number()
                 }
+                _ => new_token!(TokenType::Stop, self.ch),
             },
             b'=' => self.read_two_char_operator(TokenType::Illegal, TokenType::Equal),
             b'!' => self.read_two_char_operator_opt(TokenType::Bang, b'=', TokenType::NotEqual),
-            b'<' => self.read_two_char_operator_opt(TokenType::LessThan, b'=', TokenType::LessThanEqual),
-            b'>' => self.read_two_char_operator_opt(TokenType::GreaterThan, b'=', TokenType::GreaterThanEqual),
+            b'<' => {
+                self.read_two_char_operator_opt(TokenType::LessThan, b'=', TokenType::LessThanEqual)
+            }
+            b'>' => self.read_two_char_operator_opt(
+                TokenType::GreaterThan,
+                b'=',
+                TokenType::GreaterThanEqual,
+            ),
             b'&' => self.read_two_char_operator(TokenType::Illegal, TokenType::And),
             b'|' => self.read_two_char_operator(TokenType::Illegal, TokenType::Or),
 
@@ -113,7 +120,7 @@ impl<'a> Lexer<'a> {
     /// Peeks at the next character without advancing the lexer.
     fn peek_char(&mut self) -> u8 {
         if self.read_pos >= self.input.len() {
-            return 0
+            return 0;
         }
         self.input[self.read_pos]
     }
@@ -158,7 +165,7 @@ impl<'a> Lexer<'a> {
             b'|' => b'|',
             _ => 0,
         };
-        
+
         let next = self.peek_char();
         if next == expected {
             self.read_char();
@@ -175,7 +182,12 @@ impl<'a> Lexer<'a> {
     /// Read a two-character operator with optional second char.
     /// If peek matches the expected second char, consume it and return double_type token.
     /// Otherwise return single_type token.
-    fn read_two_char_operator_opt(&mut self, single_type: TokenType, expected_second: u8, double_type: TokenType) -> Token {
+    fn read_two_char_operator_opt(
+        &mut self,
+        single_type: TokenType,
+        expected_second: u8,
+        double_type: TokenType,
+    ) -> Token {
         let ch = self.ch;
         if self.peek_char() == expected_second {
             self.read_char();
@@ -203,7 +215,12 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Token::new(token_type,str::from_utf8(&self.input[start..self.pos]).expect("valid utf-8").into())
+        Token::new(
+            token_type,
+            str::from_utf8(&self.input[start..self.pos])
+                .expect("valid utf-8")
+                .into(),
+        )
     }
 
     /// Reads a word (identifier or keyword) from the input.
@@ -213,7 +230,7 @@ impl<'a> Lexer<'a> {
             match self.ch {
                 c if is_word_char(c) => {
                     self.read_char();
-                },
+                }
                 _ => break,
             }
         }
@@ -230,7 +247,7 @@ impl<'a> Lexer<'a> {
     /// Reads a string literal from the input, handling escape sequences.
     fn read_string(&mut self) -> Token {
         let start = self.pos;
-        self.read_char();  // consume the opening quote
+        self.read_char(); // consume the opening quote
 
         let mut found_closing_quote = false;
         loop {
@@ -239,18 +256,18 @@ impl<'a> Lexer<'a> {
                     found_closing_quote = true;
                     self.read_char();
                     break;
-                },
+                }
                 b'\\' => {
                     self.read_char(); // consume the backslash
                     self.read_char();
-                },
-                0 => break,  // EOF without closing quote
+                }
+                0 => break, // EOF without closing quote
                 _ => self.read_char(),
             }
         }
 
         let literal = str::from_utf8(&self.input[start..self.pos]).expect("valid utf-8");
-        
+
         if found_closing_quote {
             Token::new(TokenType::String, literal.into())
         } else {
@@ -262,7 +279,7 @@ impl<'a> Lexer<'a> {
     fn skip_whitespace(&mut self) {
         loop {
             match self.ch {
-                b' ' | b'\t' | b'\n' | b'\r'  => self.read_char(),
+                b' ' | b'\t' | b'\n' | b'\r' => self.read_char(),
                 _ => break,
             }
         }
@@ -277,7 +294,7 @@ fn is_word_start(c: u8) -> bool {
 /// Check if character can appear in an identifier (alphanumeric, underscore, or hyphen).
 /// Allows identifiers like `foo-bar` for natural language style variable names.
 fn is_word_char(c: u8) -> bool {
-    c.is_ascii_alphanumeric() || c == b'_' || c == b'-' 
+    c.is_ascii_alphanumeric() || c == b'_' || c == b'-'
 }
 
 #[cfg(test)]
@@ -287,9 +304,14 @@ mod tests {
     #[test]
     fn test_next_token() {
         let tests = vec![
-            ("", Token{ token_type: TokenType::EOF, literal: "".into()} ),
+            (
+                "",
+                Token {
+                    token_type: TokenType::EOF,
+                    literal: "".into(),
+                },
+            ),
             ("~", new_token!(TokenType::Illegal, b'~')),
-
             ("+", new_token!(TokenType::Plus, b'+')),
             ("-", new_token!(TokenType::Minus, b'-')),
             ("*", new_token!(TokenType::Asterisk, b'*')),
@@ -301,7 +323,6 @@ mod tests {
             ("[", new_token!(TokenType::LBracket, b'[')),
             ("]", new_token!(TokenType::RBracket, b']')),
             ("!", new_token!(TokenType::Bang, b'!')),
-
             ("&&", new_token!(TokenType::And, b'&', b'&')),
             ("&*", new_token!(TokenType::Illegal, b'&', b'*')),
             ("||", new_token!(TokenType::Or, b'|', b'|')),
@@ -313,14 +334,15 @@ mod tests {
             ("<=", new_token!(TokenType::LessThanEqual, b'<', b'=')),
             (">", new_token!(TokenType::GreaterThan, b'>')),
             (">=", new_token!(TokenType::GreaterThanEqual, b'>', b'=')),
-
             ("a", new_token!(TokenType::Ident, b'a')),
             ("1", new_token!(TokenType::Integer, b'1')),
             (".1", new_token!(TokenType::Float, b'.', b'1')),
             ("1.2", new_token!(TokenType::Float, b'1', b'.', b'2')),
             ("\"a\"", new_token!(TokenType::String, b'"', b'a', b'"')),
-            ("\"\\\"b \\\" a\"", Token::new(TokenType::String, "\"\\\"b \\\" a\"".into())),
-     
+            (
+                "\"\\\"b \\\" a\"",
+                Token::new(TokenType::String, "\"\\\"b \\\" a\"".into()),
+            ),
             ("true", Token::new(TokenType::True, "true".into())),
             ("false", Token::new(TokenType::False, "false".into())),
             ("null", Token::new(TokenType::Null, "null".into())),
@@ -337,8 +359,7 @@ mod tests {
             ("sw", Token::new(TokenType::StartsWith, "sw".into())),
             ("ew", Token::new(TokenType::EndsWith, "ew".into())),
             ("as", Token::new(TokenType::As, "as".into())),
-
-            ("_a1-_b", Token::new(TokenType::Ident, "_a1-_b".into()))
+            ("_a1-_b", Token::new(TokenType::Ident, "_a1-_b".into())),
         ];
 
         for (input, expected) in tests.iter() {
@@ -363,14 +384,16 @@ mod tests {
             new_token!(TokenType::And, b'&', b'&'),
             Token::new(TokenType::Ident, "email".into()),
             Token::new(TokenType::EndsWith, "ew".into()),
-            Token::new(TokenType::String, "\"company.com\"".into())
+            Token::new(TokenType::String, "\"company.com\"".into()),
         ];
 
         let mut lexer = Lexer::new(&input);
         let mut tokens = Vec::new();
         loop {
             let token = lexer.next_token();
-            if token.token_type == TokenType::EOF { break };
+            if token.token_type == TokenType::EOF {
+                break;
+            };
             tokens.push(token);
         }
 
@@ -380,12 +403,12 @@ mod tests {
     #[test]
     fn test_single_operators() {
         let tests = vec![
-            ("= ", new_token!(TokenType::Illegal, b'=')),  // Single = followed by space
-            ("! ", new_token!(TokenType::Bang, b'!')),     // Single ! followed by space
+            ("= ", new_token!(TokenType::Illegal, b'=')), // Single = followed by space
+            ("! ", new_token!(TokenType::Bang, b'!')),    // Single ! followed by space
             ("< ", new_token!(TokenType::LessThan, b'<')), // Single < followed by space
             ("> ", new_token!(TokenType::GreaterThan, b'>')), // Single > followed by space
-            ("& ", new_token!(TokenType::Illegal, b'&')),  // Single & followed by space
-            ("| ", new_token!(TokenType::Illegal, b'|')),  // Single | followed by space
+            ("& ", new_token!(TokenType::Illegal, b'&')), // Single & followed by space
+            ("| ", new_token!(TokenType::Illegal, b'|')), // Single | followed by space
         ];
 
         for (input, expected) in tests.iter() {
@@ -434,13 +457,13 @@ mod tests {
     fn test_multiple_dots() {
         let input = "..";
         let mut lexer = Lexer::new(&input);
-        
+
         let token1 = lexer.next_token();
         assert_eq!(token1.token_type, TokenType::Stop);
-        
+
         let token2 = lexer.next_token();
         assert_eq!(token2.token_type, TokenType::Stop);
-        
+
         let token3 = lexer.next_token();
         assert_eq!(token3.token_type, TokenType::EOF);
     }
@@ -449,11 +472,11 @@ mod tests {
     fn test_number_with_multiple_dots() {
         let input = "1.2.3";
         let mut lexer = Lexer::new(&input);
-        
+
         let token1 = lexer.next_token();
         assert_eq!(token1.token_type, TokenType::Float);
         assert_eq!(token1.literal, "1.2");
-        
+
         let token2 = lexer.next_token();
         assert_eq!(token2.token_type, TokenType::Float);
         assert_eq!(token2.literal, ".3");
@@ -463,15 +486,15 @@ mod tests {
     fn test_whitespace_handling() {
         let input = "  \t\n  a  \r  b  ";
         let mut lexer = Lexer::new(&input);
-        
+
         let token1 = lexer.next_token();
         assert_eq!(token1.token_type, TokenType::Ident);
         assert_eq!(token1.literal, "a");
-        
+
         let token2 = lexer.next_token();
         assert_eq!(token2.token_type, TokenType::Ident);
         assert_eq!(token2.literal, "b");
-        
+
         let token3 = lexer.next_token();
         assert_eq!(token3.token_type, TokenType::EOF);
     }
@@ -481,10 +504,10 @@ mod tests {
         // Negative numbers should tokenize as minus operator + integer, not a single token
         let input = "-5";
         let mut lexer = Lexer::new(&input);
-        
+
         let token1 = lexer.next_token();
         assert_eq!(token1.token_type, TokenType::Minus);
-        
+
         let token2 = lexer.next_token();
         assert_eq!(token2.token_type, TokenType::Integer);
         assert_eq!(token2.literal, "5");
@@ -515,7 +538,11 @@ mod tests {
         for (input, expected_type) in tests.iter() {
             let mut lexer = Lexer::new(input);
             let token = lexer.next_token();
-            assert_eq!(token.token_type, *expected_type, "Failed for keyword: {}", input);
+            assert_eq!(
+                token.token_type, *expected_type,
+                "Failed for keyword: {}",
+                input
+            );
         }
     }
 
@@ -535,7 +562,11 @@ mod tests {
         for (input, expected_first_type) in tests.iter() {
             let mut lexer = Lexer::new(input);
             let token = lexer.next_token();
-            assert_eq!(token.token_type, *expected_first_type, "Failed for input: {}", input);
+            assert_eq!(
+                token.token_type, *expected_first_type,
+                "Failed for input: {}",
+                input
+            );
         }
     }
 }

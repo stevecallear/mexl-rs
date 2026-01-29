@@ -1,4 +1,9 @@
-use crate::{Object, ast::{CastExpression, Expression, InfixExpression, PrefixExpression}, code::{self, Instructions, Opcode}, token::TokenType};
+use crate::{
+    Object,
+    ast::{CastExpression, Expression, InfixExpression, PrefixExpression},
+    code::{self, Instructions, Opcode},
+    token::TokenType,
+};
 use std::collections::HashMap;
 
 /// Compiler struct that compiles AST nodes into bytecode instructions.
@@ -21,7 +26,7 @@ impl Compiler {
     /// Creates a new Compiler instance.
     pub fn new() -> Self {
         Self {
-            instructions: Instructions::new(),
+            instructions: Instructions::default(),
             constants: Vec::new(),
             identifiers: Vec::new(),
             identifier_index: HashMap::new(),
@@ -30,7 +35,7 @@ impl Compiler {
 
     /// Finalizes and returns the compiled Program.
     pub fn program(self) -> Program {
-        Program { 
+        Program {
             instructions: self.instructions,
             constants: self.constants,
             identifiers: self.identifiers,
@@ -49,50 +54,50 @@ impl Compiler {
         match expr {
             Expression::Infix(e) => {
                 self.compile_infix_expression(&e)?;
-            },
+            }
             Expression::Prefix(e) => {
                 self.compile_prefix_expression(&e)?;
-            },
+            }
             Expression::IntegerLiteral(v) => {
                 let idx = self.add_constant(Object::Integer(*v));
                 self.emit(Opcode::OpConstant, &[idx]);
-            },
+            }
             Expression::FloatLiteral(v) => {
                 let idx = self.add_constant(Object::Float(*v));
                 self.emit(Opcode::OpConstant, &[idx]);
-            },
+            }
             Expression::StringLiteral(v) => {
                 let idx = self.add_constant(Object::String(v.clone()));
                 self.emit(Opcode::OpConstant, &[idx]);
-            },           
+            }
             Expression::ArrayLiteral(v) => {
                 self.compile_expressions(v)?;
                 self.emit(Opcode::OpArray, &[v.len()]);
-            },
+            }
             Expression::Boolean(v) => {
                 let op = match v {
                     true => Opcode::OpTrue,
                     false => Opcode::OpFalse,
                 };
                 self.emit(op, &[]);
-            },
+            }
             Expression::Null => {
                 self.emit(Opcode::OpNull, &[]);
-            },
+            }
             Expression::Identifier(v) => {
                 let idx = self.add_identifier(v.value.clone());
                 self.emit(Opcode::OpGlobal, &[idx]);
-            },
+            }
             Expression::Call(e) => {
                 self.compile_expression(&e.function)?;
                 self.compile_expressions(&e.arguments)?;
                 self.emit(Opcode::OpCall, &[e.arguments.len()]);
-            },            
+            }
             Expression::Member(e) => {
                 self.compile_expression(&e.left)?;
                 let idx = self.add_identifier(e.member.value.clone());
                 self.emit(Opcode::OpMember, &[idx]);
-            },
+            }
             Expression::Cast(e) => {
                 self.compile_cast_expression(&e)?;
             }
@@ -130,15 +135,19 @@ impl Compiler {
     }
 
     /// Compiles logical infix expressions (and/or).
-    fn compile_logical_op(&mut self, expr: &InfixExpression, jump_op: Opcode) -> Result<(), String> {
+    fn compile_logical_op(
+        &mut self,
+        expr: &InfixExpression,
+        jump_op: Opcode,
+    ) -> Result<(), String> {
         self.compile_expression(&expr.left)?;
-            
+
         let jump_pos = self.emit_jump_placeholder(jump_op);
 
         self.emit(Opcode::OpPop, &[]);
-        
+
         self.compile_expression(&expr.right)?;
-        
+
         let after_right_pos = self.instructions.len();
         self.patch(jump_pos, after_right_pos)
     }
@@ -148,10 +157,10 @@ impl Compiler {
         match expr.token.token_type {
             TokenType::And => {
                 return self.compile_logical_op(expr, Opcode::OpJumpNotTruthy);
-            },
+            }
             TokenType::Or => {
                 return self.compile_logical_op(expr, Opcode::OpJumpTruthy);
-            },
+            }
             _ => {} // continue
         }
 
@@ -196,7 +205,7 @@ impl Compiler {
             "float" => code::CAST_FLOAT,
             "string" => code::CAST_STRING,
             "bool" => code::CAST_BOOL,
-            other => return Err(format!("unknown cast target: {}", other))
+            other => return Err(format!("unknown cast target: {}", other)),
         };
         self.emit(Opcode::OpCast, &[type_code as usize]);
         Ok(())
@@ -246,10 +255,23 @@ mod tests {
 
     impl CompilerTestCase {
         fn assert(&self, actual: &Program) {
-            let expected_instructions: Vec<u8> = self.expected_instructions.iter().flat_map(|x| x.deref().clone()).collect();
-            assert_eq!(*actual.instructions, expected_instructions, "instructions do not match");
-            assert_eq!(actual.constants, self.expected_constants, "constants do not match");
-            assert_eq!(actual.identifiers, self.expected_identifiers, "identifiers do not match");
+            let expected_instructions: Vec<u8> = self
+                .expected_instructions
+                .iter()
+                .flat_map(|x| x.deref().clone())
+                .collect();
+            assert_eq!(
+                *actual.instructions, expected_instructions,
+                "instructions do not match"
+            );
+            assert_eq!(
+                actual.constants, self.expected_constants,
+                "constants do not match"
+            );
+            assert_eq!(
+                actual.identifiers, self.expected_identifiers,
+                "identifiers do not match"
+            );
         }
     }
 
@@ -271,7 +293,7 @@ mod tests {
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
-                        make(Opcode::OpTrue, &[]),
+                    make(Opcode::OpTrue, &[]),
                     make(Opcode::OpNot, &[]),
                     make(Opcode::OpPop, &[]),
                 ],
@@ -309,7 +331,7 @@ mod tests {
                     make(Opcode::OpSubtract, &[]),
                     make(Opcode::OpPop, &[]),
                 ],
-            },           
+            },
             CompilerTestCase {
                 input: "2 * 3",
                 expected_constants: vec![2.into(), 3.into()],
@@ -355,7 +377,7 @@ mod tests {
                     make(Opcode::OpSubtract, &[]),
                     make(Opcode::OpPop, &[]),
                 ],
-            },           
+            },
             CompilerTestCase {
                 input: "3.2 * 0.5",
                 expected_constants: vec![3.2.into(), 0.5.into()],
@@ -434,7 +456,7 @@ mod tests {
                 ],
             },
         ];
-        
+
         for test in tests {
             let bytecode = compile(test.input);
             test.assert(&bytecode);
@@ -446,7 +468,11 @@ mod tests {
         let tests = vec![
             CompilerTestCase {
                 input: r#"[1, .5, true, "abc"]"#,
-                expected_constants: vec![Object::Integer(1), Object::Float(0.5), Object::String("abc".into())],
+                expected_constants: vec![
+                    Object::Integer(1),
+                    Object::Float(0.5),
+                    Object::String("abc".into()),
+                ],
                 expected_identifiers: Vec::new(),
                 expected_instructions: vec![
                     make(Opcode::OpConstant, &[0]),
@@ -494,7 +520,7 @@ mod tests {
                 ],
             },
         ];
-        
+
         for test in tests {
             let bytecode = compile(test.input);
             test.assert(&bytecode);
@@ -503,19 +529,17 @@ mod tests {
 
     #[test]
     fn test_cast_operations() {
-        let tests = vec![
-            CompilerTestCase {
-                input: "x as float",
-                expected_constants: Vec::new(),
-                expected_identifiers: vec!["x".into()],
-                expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpCast, &[code::CAST_FLOAT as usize]),
-                    make(Opcode::OpPop, &[]),
-                ],
-            },
-        ];
-        
+        let tests = vec![CompilerTestCase {
+            input: "x as float",
+            expected_constants: Vec::new(),
+            expected_identifiers: vec!["x".into()],
+            expected_instructions: vec![
+                make(Opcode::OpGlobal, &[0]),
+                make(Opcode::OpCast, &[code::CAST_FLOAT as usize]),
+                make(Opcode::OpPop, &[]),
+            ],
+        }];
+
         for test in tests {
             let bytecode = compile(test.input);
             test.assert(&bytecode);
@@ -524,22 +548,20 @@ mod tests {
 
     #[test]
     fn test_call_operations() {
-        let tests = vec![
-            CompilerTestCase {
-                input: "len([1, 2])",
-                expected_constants: vec![Object::Integer(1), Object::Integer(2)],
-                expected_identifiers: vec!["len".into()],
-                expected_instructions: vec![
-                    make(Opcode::OpGlobal, &[0]),
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpArray, &[2]),
-                    make(Opcode::OpCall, &[1]),
-                    make(Opcode::OpPop, &[]),
-                ],
-            },
-        ];
-        
+        let tests = vec![CompilerTestCase {
+            input: "len([1, 2])",
+            expected_constants: vec![Object::Integer(1), Object::Integer(2)],
+            expected_identifiers: vec!["len".into()],
+            expected_instructions: vec![
+                make(Opcode::OpGlobal, &[0]),
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpArray, &[2]),
+                make(Opcode::OpCall, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        }];
+
         for test in tests {
             let bytecode = compile(test.input);
             test.assert(&bytecode);
@@ -553,19 +575,13 @@ mod tests {
                 input: "true",
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
-                expected_instructions: vec![
-                    make(Opcode::OpTrue, &[]),
-                    make(Opcode::OpPop, &[]),
-                ],
+                expected_instructions: vec![make(Opcode::OpTrue, &[]), make(Opcode::OpPop, &[])],
             },
             CompilerTestCase {
                 input: "false",
                 expected_constants: Vec::new(),
                 expected_identifiers: Vec::new(),
-                expected_instructions: vec![
-                    make(Opcode::OpFalse, &[]),
-                    make(Opcode::OpPop, &[]),
-                ],
+                expected_instructions: vec![make(Opcode::OpFalse, &[]), make(Opcode::OpPop, &[])],
             },
         ];
 
@@ -581,10 +597,7 @@ mod tests {
             input: "null",
             expected_constants: Vec::new(),
             expected_identifiers: Vec::new(),
-            expected_instructions: vec![
-                make(Opcode::OpNull, &[]),
-                make(Opcode::OpPop, &[]),
-            ],
+            expected_instructions: vec![make(Opcode::OpNull, &[]), make(Opcode::OpPop, &[])],
         };
         let bytecode = compile(test.input);
         test.assert(&bytecode);
@@ -769,4 +782,3 @@ mod tests {
         compiler.program()
     }
 }
-

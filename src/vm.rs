@@ -1,4 +1,9 @@
-use crate::{Environment, builtin, code::{self, Instructions, Opcode}, compiler::Program, object::{self, Function, Object}};
+use crate::{
+    Environment, builtin,
+    code::{self, Instructions, Opcode},
+    compiler::Program,
+    object::{self, Function, Object},
+};
 
 /// The size of the VM stack.
 const STACK_SIZE: usize = 2048;
@@ -40,12 +45,12 @@ impl VM {
                     let index = self.read_usize(&mut ip);
                     let obj = self.constants[index].clone();
                     self.push(obj)?;
-                },
+                }
                 Opcode::OpGlobal => {
                     let index = self.read_usize(&mut ip);
                     let ident = self.identifiers[index].clone();
                     self.execute_identifier(&ident, env)?;
-                },
+                }
 
                 // Literal Values
                 Opcode::OpTrue => self.push(Object::Boolean(true))?,
@@ -56,40 +61,49 @@ impl VM {
                 Opcode::OpArray => {
                     let array_len = self.read_usize(&mut ip);
                     self.execute_array(array_len)?;
-                },
+                }
 
                 // Unary Operations
                 Opcode::OpNot => self.execute_not_operation()?,
                 Opcode::OpMinus => self.execute_minus_operation()?,
 
                 // Binary Operations (pop two operands, execute, push result)
-                Opcode::OpAdd | Opcode::OpSubtract | Opcode::OpMultiply | Opcode::OpDivide |
-                Opcode::OpEqual | Opcode::OpNotEqual |
-                Opcode::OpLess | Opcode::OpLessOrEqual | Opcode::OpGreater | Opcode::OpGreaterOrEqual |
-                Opcode::OpStartsWith | Opcode::OpEndsWith | Opcode::OpIn => {
+                Opcode::OpAdd
+                | Opcode::OpSubtract
+                | Opcode::OpMultiply
+                | Opcode::OpDivide
+                | Opcode::OpEqual
+                | Opcode::OpNotEqual
+                | Opcode::OpLess
+                | Opcode::OpLessOrEqual
+                | Opcode::OpGreater
+                | Opcode::OpGreaterOrEqual
+                | Opcode::OpStartsWith
+                | Opcode::OpEndsWith
+                | Opcode::OpIn => {
                     let right = self.pop()?;
                     let left = self.pop()?;
                     let result = self.execute_binary_operation(op, left, right)?;
                     self.push(result)?;
-                },
+                }
 
                 // Field Access
                 Opcode::OpMember => {
                     let index = self.read_usize(&mut ip);
                     self.execute_member_operation(index)?;
-                },
+                }
 
                 // Type Casting
                 Opcode::OpCast => {
                     let type_code = self.read_u8(&mut ip);
                     self.execute_cast_operation(type_code)?;
-                },
+                }
 
                 // Function Calls
                 Opcode::OpCall => {
                     let num_args = self.read_usize(&mut ip);
                     self.execute_call_operation(num_args)?;
-                },
+                }
 
                 // Control Flow (peeks at stack without consuming for condition testing)
                 Opcode::OpJumpTruthy | Opcode::OpJumpNotTruthy => {
@@ -103,12 +117,12 @@ impl VM {
                     if should_jump {
                         ip = pos;
                     }
-                },
+                }
 
                 // Stack Management
                 Opcode::OpPop => {
                     self.pop()?;
-                },
+                }
             }
         }
 
@@ -127,10 +141,7 @@ impl VM {
 
     /// Reads a usize value from the instructions at the given instruction pointer.
     fn read_usize(&self, ip: &mut usize) -> usize {
-        let n = u16::from_be_bytes([
-            self.instructions[*ip],
-            self.instructions[*ip + 1],
-        ]) as usize;
+        let n = u16::from_be_bytes([self.instructions[*ip], self.instructions[*ip + 1]]) as usize;
         *ip += 2;
         n
     }
@@ -139,12 +150,10 @@ impl VM {
     fn execute_identifier(&mut self, ident: &str, env: &Environment) -> Result<(), String> {
         let obj = match env.get(ident) {
             Some(obj) => obj,
-            None => {
-                match get_builtin(ident) {
-                    Some(obj) => obj,
-                    None => Object::Null,
-                }
-            }
+            None => match get_builtin(ident) {
+                Some(obj) => obj,
+                None => Object::Null,
+            },
         };
         self.push(obj)?;
         Ok(())
@@ -165,17 +174,15 @@ impl VM {
     /// Executes a member access operation on an object.
     fn execute_member_operation(&mut self, ident_index: usize) -> Result<(), String> {
         let left = self.pop()?;
-        
+
         let ident = &self.identifiers[ident_index].clone();
         let obj = match left {
-            Object::Map(m) => {
-                match m.get(ident) {
-                    Some(o) => o.clone(),
-                    None => Object::Null,
-                }
+            Object::Map(m) => match m.get(ident) {
+                Some(o) => o.clone(),
+                None => Object::Null,
             },
             Object::Null => Object::Null,
-            _ => return Err(format!("invalid container type: {:?}", left))
+            _ => return Err(format!("invalid container type: {:?}", left)),
         };
 
         self.push(obj)
@@ -189,7 +196,7 @@ impl VM {
             code::CAST_FLOAT => left.cast_to_float()?,
             code::CAST_STRING => left.cast_to_string()?,
             code::CAST_BOOL => left.cast_to_boolean()?,
-            _ => return Err(format!("invalid cast type: {}", type_code))
+            _ => return Err(format!("invalid cast type: {}", type_code)),
         };
         self.push(obj)
     }
@@ -207,7 +214,7 @@ impl VM {
             Object::Function(f) => {
                 let result = (f.handler)(args)?;
                 self.push(result)?;
-            },
+            }
             _ => return Err(format!("invalid function type: {:?}", obj)),
         }
 
@@ -215,39 +222,47 @@ impl VM {
     }
 
     /// Executes a binary operation on two objects.
-    fn execute_binary_operation(&self, op: Opcode, left: Object, right: Object) -> Result<Object, String> {
+    fn execute_binary_operation(
+        &self,
+        op: Opcode,
+        left: Object,
+        right: Object,
+    ) -> Result<Object, String> {
         let (unified_left, unified_right) = object::unify_operands(left, right);
 
         match (op, unified_left, unified_right) {
             (_, Object::Integer(l), Object::Integer(r)) => {
                 self.execute_integer_binary_operation(op, l, r)
-            },
+            }
             (_, Object::Float(l), Object::Float(r)) => {
                 self.execute_float_binary_operation(op, l, r)
-            },
+            }
             (_, Object::String(l), Object::String(r)) => {
                 self.execute_string_binary_operation(op, l.as_str(), r.as_str())
-            },
+            }
             (_, Object::Boolean(l), Object::Boolean(r)) => {
                 self.execute_boolean_binary_operation(op, l, r)
-            },
-            (_, Object::Null, Object::Null) => {
-                match op {
-                    Opcode::OpEqual => Ok(Object::Boolean(true)),
-                    Opcode::OpNotEqual => Ok(Object::Boolean(false)),
-                    _ => Err("invalid operation on null".into()),
-                }
+            }
+            (_, Object::Null, Object::Null) => match op {
+                Opcode::OpEqual => Ok(Object::Boolean(true)),
+                Opcode::OpNotEqual => Ok(Object::Boolean(false)),
+                _ => Err("invalid operation on null".into()),
             },
             (Opcode::OpIn, left, Object::Array(r)) => {
                 let found = r.iter().any(|e| Self::apply_loose_equality(&left, e));
                 Ok(Object::Boolean(found))
-            },
+            }
             _ => Err("type mismatch".into()),
         }
     }
 
     /// Executes a binary operation on two integer operands.
-    fn execute_integer_binary_operation(&self, op: Opcode, left: i64, right: i64) -> Result<Object, String> {
+    fn execute_integer_binary_operation(
+        &self,
+        op: Opcode,
+        left: i64,
+        right: i64,
+    ) -> Result<Object, String> {
         let result = match op {
             Opcode::OpAdd => Object::Integer(left + right),
             Opcode::OpSubtract => Object::Integer(left - right),
@@ -265,7 +280,12 @@ impl VM {
     }
 
     /// Executes a binary operation on two float operands.
-    fn execute_float_binary_operation(&self, op: Opcode, left: f64, right: f64) -> Result<Object, String> {
+    fn execute_float_binary_operation(
+        &self,
+        op: Opcode,
+        left: f64,
+        right: f64,
+    ) -> Result<Object, String> {
         let result = match op {
             Opcode::OpAdd => Object::Float(left + right),
             Opcode::OpSubtract => Object::Float(left - right),
@@ -283,16 +303,21 @@ impl VM {
     }
 
     /// Executes a binary operation on two string operands.
-    fn execute_string_binary_operation(&self, op: Opcode, left: &str, right: &str) -> Result<Object, String> {
+    fn execute_string_binary_operation(
+        &self,
+        op: Opcode,
+        left: &str,
+        right: &str,
+    ) -> Result<Object, String> {
         let result = match op {
             Opcode::OpAdd => {
-                  let mut str = left.to_owned();
-                  str.push_str(right);
-                  Object::String(str)
-            },
+                let mut str = left.to_owned();
+                str.push_str(right);
+                Object::String(str)
+            }
             Opcode::OpEqual => Object::Boolean(left == right),
             Opcode::OpNotEqual => Object::Boolean(left != right),
-            Opcode::OpStartsWith => Object::Boolean(left.starts_with(right)),        
+            Opcode::OpStartsWith => Object::Boolean(left.starts_with(right)),
             Opcode::OpEndsWith => Object::Boolean(left.ends_with(right)),
             Opcode::OpIn => Object::Boolean(right.contains(left)),
             _ => return Err(format!("unknown string operation: {:?}", op)),
@@ -301,7 +326,12 @@ impl VM {
     }
 
     /// Executes a binary operation on two boolean operands.
-    fn execute_boolean_binary_operation(&self, op: Opcode, left: bool, right: bool) -> Result<Object, String> {
+    fn execute_boolean_binary_operation(
+        &self,
+        op: Opcode,
+        left: bool,
+        right: bool,
+    ) -> Result<Object, String> {
         let result = match op {
             Opcode::OpEqual => Object::Boolean(left == right),
             Opcode::OpNotEqual => Object::Boolean(left != right),
@@ -339,7 +369,7 @@ impl VM {
         match (left, right) {
             (Object::Integer(l), Object::Float(r)) => *l as f64 == *r,
             (Object::Float(l), Object::Integer(r)) => *l == *r as f64,
-            (l, r) => l == r
+            (l, r) => l == r,
         }
     }
 
@@ -370,35 +400,39 @@ impl VM {
 }
 
 /// Retrieves a built-in function by its identifier.
-fn get_builtin(ident: &str) -> Option<Object> {    
+fn get_builtin(ident: &str) -> Option<Object> {
     match ident {
         "len" => Some(Object::Function(Function {
-                name: "len".to_owned(),
-                handler: builtin::len,
+            name: "len".to_owned(),
+            handler: builtin::len,
         })),
         "lower" => Some(Object::Function(Function {
-                name: "lower".to_owned(),
-                handler: builtin::lower,
+            name: "lower".to_owned(),
+            handler: builtin::lower,
         })),
         "upper" => Some(Object::Function(Function {
-                name: "upper".to_owned(),
-                handler: builtin::upper,
+            name: "upper".to_owned(),
+            handler: builtin::upper,
         })),
-        _ => None
+        _ => None,
     }
 }
 
-#[cfg(test)] 
+#[cfg(test)]
 mod test {
-    use crate::{Environment, compiler::Compiler, lexer::Lexer, parser::Parser, tests::fixtures};
     use super::*;
+    use crate::{Environment, compiler::Compiler, lexer::Lexer, parser::Parser, tests::fixtures};
 
     #[test]
     fn test_run_integer_expressions() {
         for test in fixtures::integer_tests() {
             let env = Environment::default();
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
@@ -407,16 +441,24 @@ mod test {
         for test in fixtures::float_tests() {
             let env = Environment::default();
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
     #[test]
     fn test_run_string_expressions() {
-         for test in fixtures::string_tests() {
+        for test in fixtures::string_tests() {
             let env = Environment::default();
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
@@ -425,7 +467,11 @@ mod test {
         for test in fixtures::boolean_tests() {
             let env = Environment::default();
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
@@ -434,34 +480,50 @@ mod test {
         let mut env = Environment::default();
         for test in fixtures::ident_tests(&mut env) {
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
-     #[test]
+    #[test]
     fn test_run_builtin_expressions() {
         let env = Environment::default();
         for test in fixtures::builtin_tests() {
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
-     #[test]
+    #[test]
     fn test_run_cast_expressions() {
         let env = Environment::default();
         for test in fixtures::cast_tests() {
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
-     #[test]
+    #[test]
     fn test_run_member_expressions() {
         let mut env = Environment::default();
         for test in fixtures::member_tests(&mut env) {
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {} ({:?})", test.input, actual, test.expected, env);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {} ({:?})",
+                test.input, actual, test.expected, env
+            );
         }
     }
 
@@ -470,7 +532,11 @@ mod test {
         let env = Environment::default();
         for test in fixtures::array_tests() {
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
@@ -479,7 +545,11 @@ mod test {
         for test in fixtures::null_coalescing_tests() {
             let env = Environment::default();
             let actual = run(test.input, &env);
-            assert_eq!(actual, test.expected, "({}): got {}, expected {}", test.input, actual, test.expected);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {}",
+                test.input, actual, test.expected
+            );
         }
     }
 
@@ -493,7 +563,11 @@ mod test {
                 Ok(expr) => expr,
                 Err(_) => {
                     // Parse error - count as expected error
-                    assert!(test.should_error, "({}) should not have errored at parse stage", test.input);
+                    assert!(
+                        test.should_error,
+                        "({}) should not have errored at parse stage",
+                        test.input
+                    );
                     continue;
                 }
             };
@@ -503,7 +577,11 @@ mod test {
                 Ok(_) => compiler.program(),
                 Err(_) => {
                     // Compile error - count as expected error
-                    assert!(test.should_error, "({}) should not have errored at compile stage", test.input);
+                    assert!(
+                        test.should_error,
+                        "({}) should not have errored at compile stage",
+                        test.input
+                    );
                     continue;
                 }
             };
@@ -512,9 +590,19 @@ mod test {
             let result = vm.run(&env);
 
             if test.should_error {
-                assert!(result.is_err(), "({}) should have errored but got: {:?}", test.input, result);
+                assert!(
+                    result.is_err(),
+                    "({}) should have errored but got: {:?}",
+                    test.input,
+                    result
+                );
             } else {
-                assert!(result.is_ok(), "({}) should not have errored but got: {:?}", test.input, result);
+                assert!(
+                    result.is_ok(),
+                    "({}) should not have errored but got: {:?}",
+                    test.input,
+                    result
+                );
             }
         }
     }
@@ -525,7 +613,7 @@ mod test {
         let expr = parser.parse().unwrap();
         let mut compiler = Compiler::new();
         compiler.compile(&expr).unwrap();
-        
+
         let mut vm = VM::new(compiler.program());
         vm.run(env).unwrap()
     }

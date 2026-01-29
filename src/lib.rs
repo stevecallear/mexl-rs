@@ -9,14 +9,14 @@ mod parser;
 mod token;
 mod vm;
 
-use crate::compiler::{Compiler};
-use crate::parser::Parser;
+use crate::compiler::Compiler;
 use crate::lexer::Lexer;
+use crate::parser::Parser;
 use crate::vm::VM;
 
+pub use crate::compiler::Program;
 pub use crate::environment::Environment;
 pub use crate::object::{Object, unify_operands};
-pub use crate::compiler::Program;
 
 /// Compiles the given input string into a Program.
 pub fn compile(input: &str) -> Result<Program, String> {
