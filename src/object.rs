@@ -1,7 +1,9 @@
 use std::{collections::HashMap, fmt};
 
+use crate::MexlError;
+
 /// Represents a native function that can be invoked by the VM.
-pub type NativeFn = fn(Vec<Object>) -> Result<Object, String>;
+pub type NativeFn = fn(Vec<Object>) -> Result<Object, MexlError>;
 
 /// Represents a function object.
 #[derive(Debug, Clone)]
@@ -59,21 +61,23 @@ impl Object {
     }
 
     /// Cast this object to an integer.
-    pub fn cast_to_integer(self) -> Result<Object, String> {
+    pub fn cast_to_integer(self) -> Result<Object, MexlError> {
         match self {
             Object::Null => Ok(Object::default_integer()),
             Object::Integer(_) => Ok(self),
             Object::Float(f) => Ok((f as i64).into()),
-            Object::String(s) => s
-                .parse::<i64>()
-                .map(Object::Integer)
-                .map_err(|_| format!("cannot cast string '{}' to integer", s)),
-            other => Err(format!("cannot cast {} to integer", other)),
+            Object::String(s) => s.parse::<i64>().map(Object::Integer).map_err(|_| {
+                MexlError::CastError(format!("cannot cast string '{}' to integer", s))
+            }),
+            other => Err(MexlError::CastError(format!(
+                "cannot cast {} to integer",
+                other
+            ))),
         }
     }
 
     /// Cast this object to a float.
-    pub fn cast_to_float(self) -> Result<Object, String> {
+    pub fn cast_to_float(self) -> Result<Object, MexlError> {
         match self {
             Object::Null => Ok(Object::default_float()),
             Object::Integer(i) => Ok((i as f64).into()),
@@ -81,27 +85,36 @@ impl Object {
             Object::String(s) => s
                 .parse::<f64>()
                 .map(Object::Float)
-                .map_err(|_| format!("cannot cast string '{}' to float", s)),
-            other => Err(format!("cannot cast {} to float", other)),
+                .map_err(|_| MexlError::CastError(format!("cannot cast string '{}' to float", s))),
+            other => Err(MexlError::CastError(format!(
+                "cannot cast {} to float",
+                other
+            ))),
         }
     }
 
     /// Cast this object to a string.
-    pub fn cast_to_string(self) -> Result<Object, String> {
+    pub fn cast_to_string(self) -> Result<Object, MexlError> {
         match self {
             Object::Null => Ok(Object::default_string()),
             Object::Integer(i) => Ok(i.to_string().into()),
             Object::Float(f) => Ok(f.to_string().into()),
             Object::String(_) => Ok(self),
             Object::Boolean(b) => Ok(b.to_string().into()),
-            other => Err(format!("cannot cast {} to string", other)),
+            other => Err(MexlError::CastError(format!(
+                "cannot cast {} to string",
+                other
+            ))),
         }
     }
 
     /// Cast this object to a boolean according to truthiness rules.
-    pub fn cast_to_boolean(self) -> Result<Object, String> {
+    pub fn cast_to_boolean(self) -> Result<Object, MexlError> {
         if matches!(self, Object::Function(_)) {
-            return Err(format!("cannot cast {} to boolean", self));
+            return Err(MexlError::CastError(format!(
+                "cannot cast {} to boolean",
+                self
+            )));
         }
         Ok(is_truthy(&self).into())
     }
@@ -269,13 +282,23 @@ mod tests {
 
     #[test]
     fn test_cast_to_integer() {
-        let tests: Vec<(Object, Result<Object, String>)> = vec![
+        let tests: Vec<(Object, Result<Object, MexlError>)> = vec![
             (Object::Null, Ok(0.into())),
             (1.into(), Ok(1.into())),
             (1.5.into(), Ok(1.into())),
             ("1".into(), Ok(1.into())),
-            ("a".into(), Err("".into())),
-            (true.into(), Err("".into())),
+            (
+                "a".into(),
+                Err(MexlError::CastError(
+                    "cannot cast string 'a' to integer".into(),
+                )),
+            ),
+            (
+                true.into(),
+                Err(MexlError::CastError(
+                    "cannot cast boolean 'true' to integer".into(),
+                )),
+            ),
         ];
 
         for (input, expected) in tests {
@@ -292,13 +315,23 @@ mod tests {
 
     #[test]
     fn test_cast_to_float() {
-        let tests: Vec<(Object, Result<Object, String>)> = vec![
+        let tests: Vec<(Object, Result<Object, MexlError>)> = vec![
             (Object::Null, Ok(0.0.into())),
             (1.into(), Ok(1.0.into())),
             (1.5.into(), Ok(1.5.into())),
             ("1.5".into(), Ok(1.5.into())),
-            ("a".into(), Err("".into())),
-            (true.into(), Err("".into())),
+            (
+                "a".into(),
+                Err(MexlError::CastError(
+                    "cannot cast string 'a' to float".into(),
+                )),
+            ),
+            (
+                true.into(),
+                Err(MexlError::CastError(
+                    "cannot cast boolean 'true' to float".into(),
+                )),
+            ),
         ];
 
         for (input, expected) in tests {
@@ -315,13 +348,16 @@ mod tests {
 
     #[test]
     fn test_cast_to_string() {
-        let tests: Vec<(Object, Result<Object, String>)> = vec![
+        let tests: Vec<(Object, Result<Object, MexlError>)> = vec![
             (Object::Null, Ok("".into())),
             (1.into(), Ok("1".into())),
             (1.5.into(), Ok("1.5".into())),
             ("1.5".into(), Ok("1.5".into())),
             (true.into(), Ok("true".into())),
-            (vec![].into(), Err("".into())),
+            (
+                vec![].into(),
+                Err(MexlError::CastError("cannot cast array to string".into())),
+            ),
         ];
 
         for (input, expected) in tests {
@@ -338,7 +374,7 @@ mod tests {
 
     #[test]
     fn test_cast_to_boolean() {
-        let tests: Vec<(Object, Result<Object, String>)> = vec![
+        let tests: Vec<(Object, Result<Object, MexlError>)> = vec![
             (1.into(), Ok(true.into())),
             (0.0.into(), Ok(false.into())),
             (
@@ -346,7 +382,9 @@ mod tests {
                     name: "fn".into(),
                     handler: |_| unreachable!(),
                 }),
-                Err("".into()),
+                Err(MexlError::CastError(
+                    "cannot cast function to boolean".into(),
+                )),
             ),
         ];
 
@@ -519,7 +557,7 @@ mod tests {
 
     #[test]
     fn test_function_eq() {
-        let handler: NativeFn = |_| Err("error".into());
+        let handler: NativeFn = |_| Err(MexlError::RuntimeError("error".into()));
 
         let fn1a = Object::Function(Function {
             name: "fn1".to_owned(),

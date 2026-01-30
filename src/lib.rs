@@ -3,6 +3,7 @@ mod builtin;
 mod code;
 mod compiler;
 mod environment;
+mod error;
 mod lexer;
 mod object;
 mod parser;
@@ -16,10 +17,11 @@ use crate::vm::VM;
 
 pub use crate::compiler::Program;
 pub use crate::environment::Environment;
+pub use crate::error::MexlError;
 pub use crate::object::{Object, unify_operands};
 
 /// Compiles the given input string into a Program.
-pub fn compile(input: &str) -> Result<Program, String> {
+pub fn compile(input: &str) -> Result<Program, MexlError> {
     let lexer = Lexer::new(input);
     let mut parser = Parser::new(lexer);
     let expr = parser.parse()?;
@@ -30,7 +32,7 @@ pub fn compile(input: &str) -> Result<Program, String> {
 }
 
 /// Runs the given Program using the provided Environment.
-pub fn run(program: &Program, env: &Environment) -> Result<Object, String> {
+pub fn run(program: &Program, env: &Environment) -> Result<Object, MexlError> {
     let mut vm = VM::new(program);
     vm.run(env)
 }
@@ -38,7 +40,7 @@ pub fn run(program: &Program, env: &Environment) -> Result<Object, String> {
 /// Evaluates the given input string in the context of the provided Environment.
 /// This is a convenience function that compiles and runs the input.
 /// In general, separate compilation and execution should be preferred.
-pub fn eval(input: &str, env: &Environment) -> Result<Object, String> {
+pub fn eval(input: &str, env: &Environment) -> Result<Object, MexlError> {
     let program = compile(input)?;
     run(&program, env)
 }

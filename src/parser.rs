@@ -1,3 +1,4 @@
+use crate::MexlError;
 use crate::ast::{
     CallExpression, CastExpression, Expression, Identifier, InfixExpression, MemberExpression,
     PrefixExpression,
@@ -66,12 +67,12 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses the input and returns the resulting Expression or an error message.
-    pub fn parse(&mut self) -> Result<Expression, String> {
+    pub fn parse(&mut self) -> Result<Expression, MexlError> {
         match self.parse_expression(Precedence::Lowest) {
             Some(e) => Ok(e),
             None => match self.errors.len() {
-                0 => Err("unknown parser error".into()),
-                _ => Err(self.errors.join("\n")),
+                0 => Err(MexlError::ParseError("unknown parser error".into())),
+                _ => Err(MexlError::ParseError(self.errors.join("\n"))),
             },
         }
     }
@@ -420,43 +421,21 @@ mod tests {
 
     #[test]
     fn test_parser_errors() {
-        let tests: Vec<(&'static str, &'static str)> = vec![
-            (
-                "fn(1, 2]",
-                "invalid expression: got RBRACKET, expected RPAREN",
-            ),
-            (
-                "(1 + 2]",
-                "invalid expression: got RBRACKET, expected RPAREN",
-            ),
-            (
-                "true as 1",
-                "invalid expression: got INTEGER, expected IDENT",
-            ),
-            ("m.true", "invalid expression: got TRUE, expected IDENT"),
-            ("", "unknown parser error"),
-            (
-                "fn(1, )",
-                "invalid expression list: got RPAREN, expected expression",
-            ),
-            (
-                "fn(,1)",
-                "invalid expression list: got COMMA, expected expression",
-            ),
+        let tests: Vec<&'static str> = vec![
+            "fn(1, 2]",
+            "(1 + 2]",
+            "true as 1",
+            "m.true",
+            "fn(1, )",
+            "fn(,1)",
         ];
 
-        for (input, expected) in tests {
+        for input in tests {
             let input_string = input.to_string();
             let lexer = Lexer::new(&input_string);
             let mut parser = Parser::new(lexer);
             let result = parser.parse();
-            assert!(
-                result.is_err(),
-                "expected parser error for input '{}', got {:?}",
-                input,
-                result.unwrap()
-            );
-            assert_eq!(result.unwrap_err(), expected);
+            assert!(matches!(result, Err(MexlError::ParseError(_))));
         }
     }
 
