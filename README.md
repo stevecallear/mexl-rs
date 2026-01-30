@@ -106,9 +106,10 @@ The following built-in functions are available:
 
 | Function | Description |
 |----------|-------------|
-| len | the length of the string, array or map |
+| len | the length of the string or array |
 | lower | the lowercase representation of the string |
 | upper | the uppercase representation of the string |
+| trim | the whitespace trimmed string |
 
 ### Custom Functions
 
