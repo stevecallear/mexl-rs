@@ -1,7 +1,7 @@
 use crate::MexlError;
 use crate::ast::{
-    CallExpression, CastExpression, Expression, Identifier, InfixExpression, MemberExpression,
-    PrefixExpression,
+    CallExpression, CastExpression, Expression, Identifier, IndexExpression, InfixExpression,
+    MemberExpression, PrefixExpression,
 };
 use crate::lexer::Lexer;
 use crate::token::{Token, TokenType};
@@ -113,6 +113,7 @@ impl<'a> Parser<'a> {
                 | TokenType::StartsWith
                 | TokenType::EndsWith => self.parse_infix_expression(exp.unwrap()),
                 TokenType::LParen => self.parse_call_expression(exp.unwrap()),
+                TokenType::LBracket => self.parse_index_expression(exp.unwrap()),
                 TokenType::Stop => self.parse_member_expression(exp.unwrap()),
                 TokenType::As => self.parse_cast_expression(exp.unwrap()),
                 _ => return exp,
@@ -258,6 +259,23 @@ impl<'a> Parser<'a> {
         }
 
         Some(exp)
+    }
+
+    /// Parses an index expression.
+    fn parse_index_expression(&mut self, left: Expression) -> Option<Expression> {
+        self.next_token(); // curr token is bracket
+        self.next_token(); // curr token is first expression inside bracket
+
+        let index = self.parse_expression(Precedence::Lowest)?;
+
+        if !self.expect_peek(TokenType::RBracket) {
+            return None;
+        }
+
+        Some(Expression::Index(Box::new(IndexExpression {
+            left: Box::new(left),
+            index: Box::new(index),
+        })))
     }
 
     /// Parses a member access expression.
@@ -461,6 +479,12 @@ mod tests {
             ("fn(1+2, x)", "fn((1 + 2), x)"),
             ("a(b())", "a(b())"),
         ];
+        assert_parser_output(tests);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let tests = vec![("arr[0]", "(arr[0])"), ("matrix[1][2]", "((matrix[1])[2])")];
         assert_parser_output(tests);
     }
 

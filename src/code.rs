@@ -100,6 +100,7 @@ define_opcodes!(
     In,
     Minus,
     Not,
+    Index,
     Member,
     Call,
     Cast,
@@ -200,6 +201,10 @@ impl Opcode {
             },
             Opcode::Minus => Definition {
                 name: "Minus",
+                operand_widths: NO_OPERANDS,
+            },
+            Opcode::Index => Definition {
+                name: "Index",
                 operand_widths: NO_OPERANDS,
             },
             Opcode::Member => Definition {

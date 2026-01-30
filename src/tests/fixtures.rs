@@ -612,6 +612,57 @@ pub fn array_tests() -> Vec<TestCase> {
     ]
 }
 
+pub fn index_tests(env: &mut Environment) -> Vec<TestCase> {
+    env.set("key", "y".into());
+    env.set(
+        "map",
+        HashMap::from([("x".into(), 10.into()), ("y".into(), 20.into())]).into(),
+    );
+
+    vec![
+        TestCase {
+            input: "[1, 2, 3][0]",
+            expected: 1.into(),
+        },
+        TestCase {
+            input: "[1, [2, 3]][1][0]",
+            expected: 2.into(),
+        },
+        TestCase {
+            input: "[1, 2, 3][10]",
+            expected: Object::default(),
+        },
+        TestCase {
+            input: r#""abc"[1]"#,
+            expected: "b".into(),
+        },
+        TestCase {
+            input: r#""abc"[3]"#,
+            expected: Object::default(),
+        },
+        TestCase {
+            input: r#"map["x"]"#,
+            expected: 10.into(),
+        },
+        TestCase {
+            input: r#"map["invalid"]"#,
+            expected: Object::default(),
+        },
+        TestCase {
+            input: r#"map[key]"#,
+            expected: 20.into(),
+        },
+        TestCase {
+            input: "null[0]",
+            expected: Object::default(),
+        },
+        TestCase {
+            input: "[1][null]",
+            expected: Object::default(),
+        },
+    ]
+}
+
 pub fn member_tests(env: &mut Environment) -> Vec<TestCase> {
     env.set("m_a_0", HashMap::from([("m_a_1".into(), 1.into())]).into());
     env.set(
@@ -759,6 +810,14 @@ pub fn error_cases(env: &mut Environment) -> Vec<ErrorTestCase> {
         ErrorTestCase {
             input: "5 == 5",
             should_error: false,
+        },
+        ErrorTestCase {
+            input: "true[1]",
+            should_error: true,
+        },
+        ErrorTestCase {
+            input: "[1][true]",
+            should_error: true,
         },
     ]
 }

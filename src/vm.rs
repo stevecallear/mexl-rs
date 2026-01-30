@@ -84,6 +84,11 @@ impl<'a> VM<'a> {
                 }
 
                 // Field Access
+                Opcode::Index => {
+                    let index = self.pop()?;
+                    let left = self.pop()?;
+                    self.execute_index_operation(left, index)?;
+                }
                 Opcode::Member => {
                     let index = self.read_usize(&mut ip);
                     self.execute_member_operation(index)?;
@@ -168,14 +173,58 @@ impl<'a> VM<'a> {
 
     /// Executes the construction of an array from the stack.
     fn execute_array(&mut self, array_len: usize) -> Result<(), MexlError> {
-        let mut objs = Vec::with_capacity(array_len);
-        for _ in 0..array_len {
-            let obj = self.pop()?;
-            objs.push(obj);
+        let stack_len = self.stack.len();
+        if stack_len < array_len {
+            return Err(MexlError::RuntimeError(
+                "stack underflow building array".into(),
+            ));
         }
-        let array = Object::Array(objs);
-        self.push(array)?;
+
+        let start_index = stack_len - array_len;
+        let elements = self.stack.split_off(start_index);
+        self.push(elements.into())?;
         Ok(())
+    }
+
+    /// Executes an index operation on an object.
+    fn execute_index_operation(&mut self, left: Object, index: Object) -> Result<(), MexlError> {
+        let result = match (left, index) {
+            (Object::Array(arr), Object::Integer(i)) => {
+                let idx = i as usize;
+                if idx >= arr.len() {
+                    Object::Null
+                } else {
+                    arr[idx].clone()
+                }
+            }
+            (Object::String(s), Object::Integer(i)) => {
+                let idx = i as usize;
+                if idx >= s.len() {
+                    Object::Null
+                } else {
+                    Object::String(s.chars().nth(idx).unwrap().to_string())
+                }
+            }
+            (Object::Map(m), Object::String(ref key)) => match m.get(key) {
+                Some(o) => o.clone(),
+                None => Object::Null,
+            },
+            (Object::Null, _) => Object::Null,
+            (Object::Array(_) | Object::String(_) | Object::Map(_), Object::Null) => Object::Null,
+            (Object::Array(_) | Object::String(_) | Object::Map(_), index) => {
+                return Err(MexlError::RuntimeError(format!(
+                    "invalid index type: {:?}",
+                    index
+                )));
+            }
+            (left, _) => {
+                return Err(MexlError::RuntimeError(format!(
+                    "invalid container type: {:?}",
+                    left
+                )));
+            }
+        };
+        self.push(result)
     }
 
     /// Executes a member access operation on an object.
@@ -561,6 +610,19 @@ mod test {
                 actual, test.expected,
                 "({}): got {}, expected {}",
                 test.input, actual, test.expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_run_index_expressions() {
+        let mut env = Environment::default();
+        for test in fixtures::index_tests(&mut env) {
+            let actual = run(test.input, &env);
+            assert_eq!(
+                actual, test.expected,
+                "({}): got {}, expected {} ({:?})",
+                test.input, actual, test.expected, env
             );
         }
     }
