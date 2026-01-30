@@ -68,8 +68,8 @@ pub fn trim(args: Vec<Object>) -> Result<Object, MexlError> {
     }
 
     match &args[0] {
-        Object::Null => Ok(Object::default_string()),
         Object::String(s) => Ok(s.trim().into()),
+        Object::Null => Ok(Object::default_string()),
         _ => Err(MexlError::RuntimeError(format!(
             "trim: argument not supported: {}",
             args[0]
