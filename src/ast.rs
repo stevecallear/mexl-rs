@@ -15,6 +15,7 @@ pub enum Expression {
     Prefix(Box<PrefixExpression>),
     Infix(Box<InfixExpression>),
     Call(Box<CallExpression>),
+    Index(Box<IndexExpression>),
     Member(Box<MemberExpression>),
     Cast(Box<CastExpression>),
 }
@@ -57,6 +58,7 @@ impl fmt::Display for Expression {
                 }
                 write!(f, ")")
             }
+            Expression::Index(v) => write!(f, "({}[{}])", v.left, v.index),
             Expression::Member(v) => write!(f, "({}.{})", v.left, v.member),
             Expression::Cast(v) => write!(f, "({} as {})", v.left, v.target_type),
         }
@@ -98,6 +100,12 @@ pub struct InfixExpression {
 pub struct CallExpression {
     pub function: Box<Expression>,
     pub arguments: Vec<Expression>,
+}
+
+#[derive(Clone, Debug)]
+pub struct IndexExpression {
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
 }
 
 /// Represents a member access expression in the AST.
@@ -164,6 +172,13 @@ mod tests {
                     right: Box::new(Expression::IntegerLiteral(2)),
                 })),
                 "(1 + 2)",
+            ),
+            (
+                Expression::Index(Box::new(IndexExpression {
+                    left: Box::new(Expression::Identifier(Identifier { value: "x".into() })),
+                    index: Box::new(Expression::IntegerLiteral(1)),
+                })),
+                "(x[1])",
             ),
             (
                 Expression::Member(Box::new(MemberExpression {

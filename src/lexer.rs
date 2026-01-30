@@ -566,4 +566,24 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_index_expressions() {
+        let input = "array[0]";
+        let mut lexer = Lexer::new(&input);
+
+        let token1 = lexer.next_token();
+        assert_eq!(token1.token_type, TokenType::Ident);
+        assert_eq!(token1.literal, "array");
+
+        let token2 = lexer.next_token();
+        assert_eq!(token2.token_type, TokenType::LBracket);
+
+        let token3 = lexer.next_token();
+        assert_eq!(token3.token_type, TokenType::Integer);
+        assert_eq!(token3.literal, "0");
+
+        let token4 = lexer.next_token();
+        assert_eq!(token4.token_type, TokenType::RBracket);
+    }
 }

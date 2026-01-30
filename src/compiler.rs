@@ -94,6 +94,11 @@ impl Compiler {
                 self.compile_expressions(&e.arguments)?;
                 self.emit(Opcode::Call, &[e.arguments.len()]);
             }
+            Expression::Index(e) => {
+                self.compile_expression(&e.left)?;
+                self.compile_expression(&e.index)?;
+                self.emit(Opcode::Index, &[]);
+            }
             Expression::Member(e) => {
                 self.compile_expression(&e.left)?;
                 let idx = self.add_identifier(e.member.value.clone());
@@ -729,6 +734,23 @@ mod tests {
             let bytecode = compile(test.input);
             test.assert(&bytecode);
         }
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let test = CompilerTestCase {
+            input: "arr[0]",
+            expected_constants: vec![0.into()],
+            expected_identifiers: vec!["arr"],
+            expected_instructions: vec![
+                make(Opcode::Global, &[0]),
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Index, &[]),
+                make(Opcode::Pop, &[]),
+            ],
+        };
+        let bytecode = compile(test.input);
+        test.assert(&bytecode);
     }
 
     #[test]
