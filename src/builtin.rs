@@ -58,6 +58,25 @@ pub fn upper(args: Vec<Object>) -> Result<Object, MexlError> {
     }
 }
 
+/// Trims whitespace from both ends of a string.
+pub fn trim(args: Vec<Object>) -> Result<Object, MexlError> {
+    if args.len() != 1 {
+        return Err(MexlError::RuntimeError(format!(
+            "trim: wrong numer of arguments: {}",
+            args.len()
+        )));
+    }
+
+    match &args[0] {
+        Object::Null => Ok(Object::default_string()),
+        Object::String(s) => Ok(s.trim().into()),
+        _ => Err(MexlError::RuntimeError(format!(
+            "trim: argument not supported: {}",
+            args[0]
+        ))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,6 +146,29 @@ mod tests {
 
         for (input, expected) in tests {
             let actual = upper(input);
+            if actual.is_err() && expected.is_err() {
+                continue;
+            }
+
+            assert_eq!(actual.unwrap(), expected.unwrap());
+        }
+    }
+
+    #[test]
+    fn test_trim() {
+        let tests: Vec<(Vec<Object>, Result<Object, MexlError>)> = vec![
+            (vec![], Err(MexlError::RuntimeError(String::new()))),
+            (
+                vec![" a ".into(), " b ".into()],
+                Err(MexlError::RuntimeError(String::new())),
+            ),
+            (vec![1.into()], Err(MexlError::RuntimeError(String::new()))),
+            (vec!["  hello  ".into()], Ok("hello".into())),
+            (vec![Object::Null], Ok("".into())),
+        ];
+
+        for (input, expected) in tests {
+            let actual = trim(input);
             if actual.is_err() && expected.is_err() {
                 continue;
             }

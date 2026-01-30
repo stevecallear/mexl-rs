@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// Represents errors that can occur in the Mexl library.
 #[derive(Error, Debug, PartialEq)]
 pub enum MexlError {
     #[error("Parser error: {0}")]

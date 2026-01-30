@@ -483,6 +483,10 @@ pub fn builtin_tests() -> Vec<TestCase> {
             input: r#"upper("abc")"#,
             expected: "ABC".into(),
         },
+        TestCase {
+            input: r#"trim("  hello  ")"#,
+            expected: "hello".into(),
+        },
     ]
 }
 
