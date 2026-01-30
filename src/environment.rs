@@ -32,18 +32,19 @@ impl Environment {
 }
 
 #[cfg(feature = "serde")]
-impl Environment {
-    pub fn from_json(json_str: &str) -> Result<Environment, String> {
-        let mut env = Environment::default();
-        let v: serde_json::Value = serde_json::from_str(json_str).map_err(|e| e.to_string())?;
+impl TryFrom<serde_json::Value> for Environment {
+    type Error = String;
 
-        if let serde_json::Value::Object(map) = v {
-            for (key, value) in map {
-                env.set(&key, Object::from(value));
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            serde_json::Value::Object(map) => {
+                let mut env = Environment::default();
+                for (key, value) in map {
+                    env.set(&key, Object::from(value));
+                }
+                Ok(env)
             }
-            Ok(env)
-        } else {
-            Err("JSON root must be an object".to_string())
+            _ => Err("JSON root must be an object".to_string()),
         }
     }
 }
@@ -83,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn test_environment_from_json() {
+    fn test_environment_try_from() {
         let json_str = r#"
     {
         "name": "test_user",
@@ -92,7 +93,8 @@ mod tests {
         "roles": ["user", "admin"]
     }"#;
 
-        let env = Environment::from_json(json_str).unwrap();
+        let root: serde_json::Value = serde_json::from_str(json_str).unwrap();
+        let env = Environment::try_from(root).unwrap();
 
         assert_eq!(env.get("name").unwrap(), "test_user".into());
         assert_eq!(env.get("age").unwrap(), 30.into());
@@ -104,10 +106,10 @@ mod tests {
     }
 
     #[test]
-    fn test_environment_from_json_error_cases() {
-        for json_str in &["null", "[]", "{"] {
-            let result = Environment::from_json(json_str);
-            assert!(result.is_err());
-        }
+    fn test_environment_try_from_invalid() {
+        let json_str = "[1, 2, 3]"; // not an object
+        let root: serde_json::Value = serde_json::from_str(json_str).unwrap();
+        let result = Environment::try_from(root);
+        assert!(result.is_err());
     }
 }
