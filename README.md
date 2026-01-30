@@ -133,8 +133,10 @@ env.define_function("reverse", |args| {
         Object::String(ref s) => {
             let reversed: String = s.chars().rev().collect();
             Ok(reversed.into())
-        },
-        _ => Err("Invalid argument type".to_string()),
+        }
+        _ => Err(mexl::MexlError::RuntimeError(
+            "Invalid argument type".into(),
+        )),
     }
 });
 
