@@ -60,7 +60,7 @@ cargo test         # Run tests (test_compile_and_run in lib.rs)
 ```
 
 ### Adding a Builtin Function
-1. Define handler in [builtin.rs](src/builtin.rs) with signature `fn(Vec<Object>) -> Result<Object, String>`
+1. Define handler in [builtin.rs](src/builtin.rs) with signature `fn(Vec<Object>) -> Result<Object, MexlError>`
 2. Register in [compiler.rs](src/compiler.rs) `compile_call` case to emit OpCall opcode with function index
 3. Register in [vm.rs](src/vm.rs) `execute_call` to map index to handler function
 

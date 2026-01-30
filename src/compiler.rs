@@ -2,6 +2,7 @@ use crate::{
     Object,
     ast::{CastExpression, Expression, InfixExpression, PrefixExpression},
     code::{self, Instructions, Opcode},
+    error::MexlError,
     token::TokenType,
 };
 use std::collections::HashMap;
@@ -43,14 +44,14 @@ impl Compiler {
     }
 
     /// Compiles an expression node into bytecode.
-    pub fn compile(&mut self, node: &Expression) -> Result<(), String> {
+    pub fn compile(&mut self, node: &Expression) -> Result<(), MexlError> {
         self.compile_expression(node)?;
         self.emit(Opcode::Pop, &[]);
         Ok(())
     }
 
     /// Compiles an expression recursively.
-    fn compile_expression(&mut self, expr: &Expression) -> Result<(), String> {
+    fn compile_expression(&mut self, expr: &Expression) -> Result<(), MexlError> {
         match expr {
             Expression::Infix(e) => {
                 self.compile_infix_expression(e)?;
@@ -106,7 +107,7 @@ impl Compiler {
     }
 
     /// Compiles a list of expressions.
-    fn compile_expressions(&mut self, exprs: &[Expression]) -> Result<(), String> {
+    fn compile_expressions(&mut self, exprs: &[Expression]) -> Result<(), MexlError> {
         for expr in exprs {
             self.compile_expression(expr)?;
         }
@@ -121,10 +122,10 @@ impl Compiler {
     }
 
     /// Patches a jump instruction at the given offset to point to the target.
-    fn patch(&mut self, offset: usize, target: usize) -> Result<(), String> {
+    fn patch(&mut self, offset: usize, target: usize) -> Result<(), MexlError> {
         let operand_pos = offset + 1;
         if operand_pos + 2 > self.instructions.len() {
-            return Err("undefined jump target".into());
+            return Err(MexlError::CompileError("undefined jump target".into()));
         }
 
         let bytes = (target as u16).to_be_bytes();
@@ -139,7 +140,7 @@ impl Compiler {
         &mut self,
         expr: &InfixExpression,
         jump_op: Opcode,
-    ) -> Result<(), String> {
+    ) -> Result<(), MexlError> {
         self.compile_expression(&expr.left)?;
 
         let jump_pos = self.emit_jump_placeholder(jump_op);
@@ -153,7 +154,7 @@ impl Compiler {
     }
 
     /// Compiles an infix expression node.
-    fn compile_infix_expression(&mut self, expr: &InfixExpression) -> Result<(), String> {
+    fn compile_infix_expression(&mut self, expr: &InfixExpression) -> Result<(), MexlError> {
         match expr.token.token_type {
             TokenType::And => {
                 return self.compile_logical_op(expr, Opcode::JumpNotTruthy);
@@ -180,32 +181,47 @@ impl Compiler {
             TokenType::StartsWith => Opcode::StartsWith,
             TokenType::EndsWith => Opcode::EndsWith,
             TokenType::In => Opcode::In,
-            _ => return Err(format!("unknown infix operator: {}", expr.operator)),
+            _ => {
+                return Err(MexlError::CompileError(format!(
+                    "unknown infix operator: {}",
+                    expr.operator
+                )));
+            }
         };
         self.emit(op, &[]);
         Ok(())
     }
 
     /// Compiles a prefix expression node.
-    fn compile_prefix_expression(&mut self, expr: &PrefixExpression) -> Result<(), String> {
+    fn compile_prefix_expression(&mut self, expr: &PrefixExpression) -> Result<(), MexlError> {
         self.compile_expression(&expr.right)?;
         match expr.token.token_type {
             TokenType::Bang => self.emit(Opcode::Not, &[]),
             TokenType::Minus => self.emit(Opcode::Minus, &[]),
-            _ => return Err(format!("unknown prefix operator: {}", expr.operator)),
+            _ => {
+                return Err(MexlError::CompileError(format!(
+                    "unknown prefix operator: {}",
+                    expr.operator
+                )));
+            }
         };
         Ok(())
     }
 
     /// Compiles a cast expression node.
-    fn compile_cast_expression(&mut self, expr: &CastExpression) -> Result<(), String> {
+    fn compile_cast_expression(&mut self, expr: &CastExpression) -> Result<(), MexlError> {
         self.compile_expression(&expr.left)?;
         let type_code = match expr.target_type.value.as_str() {
             "int" => code::CAST_INT,
             "float" => code::CAST_FLOAT,
             "string" => code::CAST_STRING,
             "bool" => code::CAST_BOOL,
-            other => return Err(format!("unknown cast target: {}", other)),
+            other => {
+                return Err(MexlError::CompileError(format!(
+                    "unknown cast target: {}",
+                    other
+                )));
+            }
         };
         self.emit(Opcode::Cast, &[type_code as usize]);
         Ok(())

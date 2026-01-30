@@ -1,5 +1,5 @@
 use crate::{
-    Environment, builtin,
+    Environment, MexlError, builtin,
     code::{self, Opcode},
     compiler::Program,
     object::{self, Function, Object},
@@ -28,7 +28,7 @@ impl<'a> VM<'a> {
     }
 
     /// Runs the VM with the provided environment.
-    pub fn run(&mut self, env: &Environment) -> Result<Object, String> {
+    pub fn run(&mut self, env: &Environment) -> Result<Object, MexlError> {
         let mut ip = 0;
 
         while ip < self.program.instructions.len() {
@@ -104,11 +104,19 @@ impl<'a> VM<'a> {
                 // Control Flow (peeks at stack without consuming for condition testing)
                 Opcode::JumpTruthy | Opcode::JumpNotTruthy => {
                     let pos = self.read_usize(&mut ip);
-                    let condition = self.stack.last().ok_or("stack underflow")?;
+                    let condition = self
+                        .stack
+                        .last()
+                        .ok_or(MexlError::RuntimeError("stack underflow".into()))?;
                     let should_jump = match op {
                         Opcode::JumpTruthy => object::is_truthy(condition),
                         Opcode::JumpNotTruthy => !object::is_truthy(condition),
-                        _ => return Err(format!("invalid jump opcode: {:?}", op)),
+                        _ => {
+                            return Err(MexlError::RuntimeError(format!(
+                                "invalid jump opcode: {:?}",
+                                op
+                            )));
+                        }
                     };
                     if should_jump {
                         ip = pos;
@@ -146,7 +154,7 @@ impl<'a> VM<'a> {
     }
 
     /// Executes an identifier by looking it up in the environment or built-ins.
-    fn execute_identifier(&mut self, ident: &str, env: &Environment) -> Result<(), String> {
+    fn execute_identifier(&mut self, ident: &str, env: &Environment) -> Result<(), MexlError> {
         let obj = match env.get(ident) {
             Some(obj) => obj,
             None => match get_builtin(ident) {
@@ -159,7 +167,7 @@ impl<'a> VM<'a> {
     }
 
     /// Executes the construction of an array from the stack.
-    fn execute_array(&mut self, array_len: usize) -> Result<(), String> {
+    fn execute_array(&mut self, array_len: usize) -> Result<(), MexlError> {
         let mut objs = Vec::with_capacity(array_len);
         for _ in 0..array_len {
             let obj = self.pop()?;
@@ -171,7 +179,7 @@ impl<'a> VM<'a> {
     }
 
     /// Executes a member access operation on an object.
-    fn execute_member_operation(&mut self, ident_index: usize) -> Result<(), String> {
+    fn execute_member_operation(&mut self, ident_index: usize) -> Result<(), MexlError> {
         let left = self.pop()?;
 
         let ident = &self.program.identifiers[ident_index].clone();
@@ -181,27 +189,37 @@ impl<'a> VM<'a> {
                 None => Object::Null,
             },
             Object::Null => Object::Null,
-            _ => return Err(format!("invalid container type: {:?}", left)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "invalid container type: {:?}",
+                    left
+                )));
+            }
         };
 
         self.push(obj)
     }
 
     /// Executes a cast operation on the top stack object.
-    fn execute_cast_operation(&mut self, type_code: u8) -> Result<(), String> {
+    fn execute_cast_operation(&mut self, type_code: u8) -> Result<(), MexlError> {
         let left = self.pop()?;
         let obj = match type_code {
             code::CAST_INT => left.cast_to_integer()?,
             code::CAST_FLOAT => left.cast_to_float()?,
             code::CAST_STRING => left.cast_to_string()?,
             code::CAST_BOOL => left.cast_to_boolean()?,
-            _ => return Err(format!("invalid cast type: {}", type_code)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "invalid cast type: {}",
+                    type_code
+                )));
+            }
         };
         self.push(obj)
     }
 
     /// Executes a function call operation.
-    fn execute_call_operation(&mut self, num_args: usize) -> Result<(), String> {
+    fn execute_call_operation(&mut self, num_args: usize) -> Result<(), MexlError> {
         let mut args = Vec::with_capacity(num_args);
         for _ in 0..num_args {
             let obj = self.pop()?;
@@ -214,7 +232,12 @@ impl<'a> VM<'a> {
                 let result = (f.handler)(args)?;
                 self.push(result)?;
             }
-            _ => return Err(format!("invalid function type: {:?}", obj)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "invalid function type: {:?}",
+                    obj
+                )));
+            }
         }
 
         Ok(())
@@ -226,7 +249,7 @@ impl<'a> VM<'a> {
         op: Opcode,
         left: Object,
         right: Object,
-    ) -> Result<Object, String> {
+    ) -> Result<Object, MexlError> {
         let (unified_left, unified_right) = object::unify_operands(left, right);
 
         match (op, unified_left, unified_right) {
@@ -245,13 +268,13 @@ impl<'a> VM<'a> {
             (_, Object::Null, Object::Null) => match op {
                 Opcode::Equal => Ok(Object::Boolean(true)),
                 Opcode::NotEqual => Ok(Object::Boolean(false)),
-                _ => Err("invalid operation on null".into()),
+                _ => Err(MexlError::RuntimeError("invalid operation on null".into())),
             },
             (Opcode::In, left, Object::Array(r)) => {
                 let found = r.iter().any(|e| Self::apply_loose_equality(&left, e));
                 Ok(Object::Boolean(found))
             }
-            _ => Err("type mismatch".into()),
+            _ => Err(MexlError::RuntimeError("type mismatch".into())),
         }
     }
 
@@ -261,7 +284,7 @@ impl<'a> VM<'a> {
         op: Opcode,
         left: i64,
         right: i64,
-    ) -> Result<Object, String> {
+    ) -> Result<Object, MexlError> {
         let result = match op {
             Opcode::Add => Object::Integer(left + right),
             Opcode::Subtract => Object::Integer(left - right),
@@ -273,7 +296,12 @@ impl<'a> VM<'a> {
             Opcode::LessOrEqual => Object::Boolean(left <= right),
             Opcode::Greater => Object::Boolean(left > right),
             Opcode::GreaterOrEqual => Object::Boolean(left >= right),
-            _ => return Err(format!("unknown integer operation: {:?}", op)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "unknown integer operation: {:?}",
+                    op
+                )));
+            }
         };
         Ok(result)
     }
@@ -284,7 +312,7 @@ impl<'a> VM<'a> {
         op: Opcode,
         left: f64,
         right: f64,
-    ) -> Result<Object, String> {
+    ) -> Result<Object, MexlError> {
         let result = match op {
             Opcode::Add => Object::Float(left + right),
             Opcode::Subtract => Object::Float(left - right),
@@ -296,7 +324,12 @@ impl<'a> VM<'a> {
             Opcode::LessOrEqual => Object::Boolean(left <= right),
             Opcode::Greater => Object::Boolean(left > right),
             Opcode::GreaterOrEqual => Object::Boolean(left >= right),
-            _ => return Err(format!("unknown float operation: {:?}", op)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "unknown float operation: {:?}",
+                    op
+                )));
+            }
         };
         Ok(result)
     }
@@ -307,7 +340,7 @@ impl<'a> VM<'a> {
         op: Opcode,
         left: &str,
         right: &str,
-    ) -> Result<Object, String> {
+    ) -> Result<Object, MexlError> {
         let result = match op {
             Opcode::Add => {
                 let mut str = left.to_owned();
@@ -319,7 +352,12 @@ impl<'a> VM<'a> {
             Opcode::StartsWith => Object::Boolean(left.starts_with(right)),
             Opcode::EndsWith => Object::Boolean(left.ends_with(right)),
             Opcode::In => Object::Boolean(right.contains(left)),
-            _ => return Err(format!("unknown string operation: {:?}", op)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "unknown string operation: {:?}",
+                    op
+                )));
+            }
         };
         Ok(result)
     }
@@ -330,19 +368,22 @@ impl<'a> VM<'a> {
         op: Opcode,
         left: bool,
         right: bool,
-    ) -> Result<Object, String> {
+    ) -> Result<Object, MexlError> {
         let result = match op {
             Opcode::Equal => Object::Boolean(left == right),
             Opcode::NotEqual => Object::Boolean(left != right),
-            // Opcode::OpAnd => Object::Boolean(left && right),
-            // Opcode::OpOr => Object::Boolean(left || right),
-            _ => return Err(format!("unknown boolean operation: {:?}", op)),
+            _ => {
+                return Err(MexlError::RuntimeError(format!(
+                    "unknown boolean operation: {:?}",
+                    op
+                )));
+            }
         };
         Ok(result)
     }
 
     /// Executes a logical NOT operation on the top stack object.
-    fn execute_not_operation(&mut self) -> Result<(), String> {
+    fn execute_not_operation(&mut self) -> Result<(), MexlError> {
         match self.pop()? {
             Object::Boolean(b) => self.push(Object::Boolean(!b))?,
             Object::Null => self.push(Object::Boolean(true))?,
@@ -352,13 +393,17 @@ impl<'a> VM<'a> {
     }
 
     /// Executes a negation operation on the top stack object.
-    fn execute_minus_operation(&mut self) -> Result<(), String> {
+    fn execute_minus_operation(&mut self) -> Result<(), MexlError> {
         let obj = self.pop()?;
         match obj {
             Object::Integer(i) => self.push(Object::Integer(-i))?,
             Object::Float(f) => self.push(Object::Float(-f))?,
             Object::Null => self.push(Object::Null)?,
-            _ => return Err("unsupported type for negation".into()),
+            _ => {
+                return Err(MexlError::RuntimeError(
+                    "unsupported type for negation".into(),
+                ));
+            }
         }
         Ok(())
     }
@@ -373,9 +418,9 @@ impl<'a> VM<'a> {
     }
 
     /// Pushes an object onto the VM stack.
-    fn push(&mut self, obj: Object) -> Result<(), String> {
+    fn push(&mut self, obj: Object) -> Result<(), MexlError> {
         if self.sp >= STACK_SIZE {
-            return Err("stack overflow".into());
+            return Err(MexlError::RuntimeError("stack overflow".into()));
         }
 
         self.stack.push(obj);
@@ -385,12 +430,15 @@ impl<'a> VM<'a> {
     }
 
     /// Pops an object from the VM stack.
-    fn pop(&mut self) -> Result<Object, String> {
+    fn pop(&mut self) -> Result<Object, MexlError> {
         if self.sp == 0 {
-            return Err("stack underflow".into());
+            return Err(MexlError::RuntimeError("stack underflow".into()));
         }
 
-        let obj = self.stack.pop().ok_or("stack underflow")?;
+        let obj = self
+            .stack
+            .pop()
+            .ok_or(MexlError::RuntimeError("stack underflow".into()))?;
         self.last_popped_elem = Some(obj.clone());
         self.sp -= 1;
 

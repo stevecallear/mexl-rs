@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+#[cfg(feature = "serde")]
+use crate::MexlError;
 use crate::object::{Function, NativeFn, Object};
 
 /// Represents the environment that holds variable and function bindings.
@@ -33,7 +35,7 @@ impl Environment {
 
 #[cfg(feature = "serde")]
 impl TryFrom<serde_json::Value> for Environment {
-    type Error = String;
+    type Error = MexlError;
 
     fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
         match value {
@@ -44,7 +46,9 @@ impl TryFrom<serde_json::Value> for Environment {
                 }
                 Ok(env)
             }
-            _ => Err("JSON root must be an object".to_string()),
+            _ => Err(MexlError::InvalidEnvironmentFormat(
+                "JSON root must be an object".into(),
+            )),
         }
     }
 }
