@@ -68,12 +68,15 @@ impl<'a> Parser<'a> {
 
     /// Parses the input and returns the resulting Expression or an error message.
     pub fn parse(&mut self) -> Result<Expression, MexlError> {
-        match self.parse_expression(Precedence::Lowest) {
-            Some(e) => Ok(e),
-            None => match self.errors.len() {
-                0 => Err(MexlError::ParseError("unknown parser error".into())),
-                _ => Err(MexlError::ParseError(self.errors.join("\n"))),
-            },
+        if let Some(e) = self.parse_expression(Precedence::Lowest)
+            && self.expect_peek(TokenType::Eof)
+        {
+            return Ok(e);
+        }
+
+        match self.errors.len() {
+            0 => Err(MexlError::ParseError("unknown parser error".into())),
+            _ => Err(MexlError::ParseError(self.errors.join("\n"))),
         }
     }
 
@@ -384,6 +387,16 @@ mod tests {
     }
 
     #[test]
+    fn test_whitespace() {
+        let tests = vec![
+            ("   42   ", "42"),
+            ("\n\ttrue\n", "true"),
+            ("  \"abc\"  ", "\"abc\""),
+        ];
+        assert_parser_output(tests);
+    }
+
+    #[test]
     fn test_basic_arithmetic_precedence() {
         let tests = vec![("1 + 2", "(1 + 2)"), ("x * (y + 2)", "(x * (y + 2))")];
         assert_parser_output(tests);
@@ -422,12 +435,14 @@ mod tests {
     #[test]
     fn test_parser_errors() {
         let tests: Vec<&'static str> = vec![
+            "",
             "fn(1, 2]",
             "(1 + 2]",
             "true as 1",
             "m.true",
             "fn(1, )",
             "fn(,1)",
+            "true true",
         ];
 
         for input in tests {

@@ -179,7 +179,6 @@ See [src/lib.rs](src/lib.rs) and the copilot-instructions.md for more details on
 
 ## Future
 
-- [ ] Error if multiple top-level expressions (currently terminates early)
 - [ ] Index operator for arrays/strings (e.g., `arr[0]`, `str[1]`)
 - [ ] Array members via dot notation (e.g., `arr.0 == arr[0]`)
 - [ ] Slice operator for arrays/strings (e.g., `arr[1..5]`, `str[..3]`)
