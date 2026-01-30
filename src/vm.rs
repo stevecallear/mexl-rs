@@ -461,6 +461,10 @@ fn get_builtin(ident: &str) -> Option<Object> {
             name: "upper".to_owned(),
             handler: builtin::upper,
         })),
+        "trim" => Some(Object::Function(Function {
+            name: "trim".to_owned(),
+            handler: builtin::trim,
+        })),
         _ => None,
     }
 }
