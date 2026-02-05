@@ -217,7 +217,7 @@ impl From<HashMap<String, Object>> for Object {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_json")]
 impl From<serde_json::Value> for Object {
     /// Converts a Value to an Object.
     fn from(value: serde_json::Value) -> Self {
@@ -267,7 +267,7 @@ pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_json")]
 mod tests {
     use super::*;
 
