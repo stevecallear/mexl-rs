@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_json")]
 use crate::MexlError;
 use crate::object::{Function, NativeFn, Object};
 
@@ -33,11 +33,13 @@ impl Environment {
     }
 }
 
-#[cfg(feature = "serde")]
-impl TryFrom<serde_json::Value> for Environment {
-    type Error = MexlError;
+#[cfg(feature = "serde_json")]
+impl Environment {
+    /// Creates an environment from a JSON string.
+    pub fn from_json_str(json_str: &str) -> Result<Self, MexlError> {
+        let value: serde_json::Value = serde_json::from_str(json_str)
+            .map_err(|e| MexlError::InvalidEnvironmentFormat(e.to_string()))?;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
         match value {
             serde_json::Value::Object(map) => {
                 let mut env = Environment::default();
@@ -54,6 +56,7 @@ impl TryFrom<serde_json::Value> for Environment {
 }
 
 #[cfg(test)]
+#[cfg(feature = "serde_json")]
 mod tests {
     use super::*;
 
@@ -88,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn test_environment_try_from() {
+    fn test_environment_from_json_str() {
         let json_str = r#"
     {
         "name": "test_user",
@@ -97,8 +100,7 @@ mod tests {
         "roles": ["user", "admin"]
     }"#;
 
-        let root: serde_json::Value = serde_json::from_str(json_str).unwrap();
-        let env = Environment::try_from(root).unwrap();
+        let env = Environment::from_json_str(json_str).unwrap();
 
         assert_eq!(env.get("name").unwrap(), "test_user".into());
         assert_eq!(env.get("age").unwrap(), 30.into());
@@ -110,10 +112,9 @@ mod tests {
     }
 
     #[test]
-    fn test_environment_try_from_invalid() {
+    fn test_environment_from_json_str_invalid() {
         let json_str = "[1, 2, 3]"; // not an object
-        let root: serde_json::Value = serde_json::from_str(json_str).unwrap();
-        let result = Environment::try_from(root);
+        let result = Environment::from_json_str(json_str);
         assert!(result.is_err());
     }
 }
