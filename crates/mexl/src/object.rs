@@ -515,6 +515,8 @@ mod tests {
 
     #[test]
     fn test_unify_operands() {
+        let arr: Object = vec![1.into(), 2.into()].into();
+
         struct TestCase {
             input_left: Object,
             input_right: Object,
@@ -564,6 +566,18 @@ mod tests {
                 input_right: Object::Null,
                 expected_left: true.into(),
                 expected_right: false.into(),
+            },
+            TestCase {
+                input_left: Object::Null,
+                input_right: arr.clone(),
+                expected_left: Object::Null,
+                expected_right: arr.clone(),
+            },
+            TestCase {
+                input_left: arr.clone(),
+                input_right: Object::Null,
+                expected_left: arr.clone(),
+                expected_right: Object::Null,
             },
             TestCase {
                 input_left: Object::Null,
