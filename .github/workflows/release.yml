@@ -1,0 +1,36 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-wasm:
+    name: Build and Release WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+    
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build WASM
+        run: cargo build -p mexl_wasi --target wasm32-unknown-unknown --release
+      
+      - name: Optimize WASM
+        uses: NiklasMerz/wasm-opt-action@v2
+        with:
+          file: target/wasm-32-unknown-unknown/release/mexl_wasi.wasm
+          output: mexl_wasi.wasm
+      
+      - name: Create Release 
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mexl_wasi.wasm
+          generate_release_notes: true
