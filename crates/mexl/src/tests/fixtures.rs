@@ -819,5 +819,13 @@ pub fn error_cases(env: &mut Environment) -> Vec<ErrorTestCase> {
             input: "[1][true]",
             should_error: true,
         },
+        ErrorTestCase {
+            input: "1 / 0",
+            should_error: true,
+        },
+        ErrorTestCase {
+            input: "1.0 / 0.0",
+            should_error: true,
+        },
     ]
 }

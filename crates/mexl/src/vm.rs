@@ -338,7 +338,12 @@ impl<'a> VM<'a> {
             Opcode::Add => Object::Integer(left + right),
             Opcode::Subtract => Object::Integer(left - right),
             Opcode::Multiply => Object::Integer(left * right),
-            Opcode::Divide => Object::Integer(left / right),
+            Opcode::Divide => {
+                if right == 0 {
+                    return Err(MexlError::RuntimeError("division by zero".into()));
+                }
+                Object::Integer(left / right)
+            }
             Opcode::Equal => Object::Boolean(left == right),
             Opcode::NotEqual => Object::Boolean(left != right),
             Opcode::Less => Object::Boolean(left < right),
@@ -366,7 +371,12 @@ impl<'a> VM<'a> {
             Opcode::Add => Object::Float(left + right),
             Opcode::Subtract => Object::Float(left - right),
             Opcode::Multiply => Object::Float(left * right),
-            Opcode::Divide => Object::Float(left / right),
+            Opcode::Divide => {
+                if right == 0.0 {
+                    return Err(MexlError::RuntimeError("division by zero".into()));
+                }
+                Object::Float(left / right)
+            }
             Opcode::Equal => Object::Boolean(left == right),
             Opcode::NotEqual => Object::Boolean(left != right),
             Opcode::Less => Object::Boolean(left < right),
@@ -527,7 +537,7 @@ mod test {
     fn test_run_integer_expressions() {
         for test in fixtures::integer_tests() {
             let env = Environment::default();
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -540,7 +550,7 @@ mod test {
     fn test_run_float_expressions() {
         for test in fixtures::float_tests() {
             let env = Environment::default();
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -553,7 +563,7 @@ mod test {
     fn test_run_string_expressions() {
         for test in fixtures::string_tests() {
             let env = Environment::default();
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -566,7 +576,7 @@ mod test {
     fn test_run_boolean_expressions() {
         for test in fixtures::boolean_tests() {
             let env = Environment::default();
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -579,7 +589,7 @@ mod test {
     fn test_run_ident_expressions() {
         let mut env = Environment::default();
         for test in fixtures::ident_tests(&mut env) {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -592,7 +602,7 @@ mod test {
     fn test_run_builtin_expressions() {
         let env = Environment::default();
         for test in fixtures::builtin_tests() {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -605,7 +615,7 @@ mod test {
     fn test_run_cast_expressions() {
         let env = Environment::default();
         for test in fixtures::cast_tests() {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -618,7 +628,7 @@ mod test {
     fn test_run_index_expressions() {
         let mut env = Environment::default();
         for test in fixtures::index_tests(&mut env) {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {} ({:?})",
@@ -631,7 +641,7 @@ mod test {
     fn test_run_member_expressions() {
         let mut env = Environment::default();
         for test in fixtures::member_tests(&mut env) {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {} ({:?})",
@@ -644,7 +654,7 @@ mod test {
     fn test_run_array_expressions() {
         let env = Environment::default();
         for test in fixtures::array_tests() {
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -657,7 +667,7 @@ mod test {
     fn test_run_null_coalescing() {
         for test in fixtures::null_coalescing_tests() {
             let env = Environment::default();
-            let actual = run(test.input, &env);
+            let actual = must_run(test.input, &env);
             assert_eq!(
                 actual, test.expected,
                 "({}): got {}, expected {}",
@@ -670,65 +680,39 @@ mod test {
     fn test_error_cases() {
         let mut env = Environment::default();
         for test in fixtures::error_cases(&mut env) {
-            let lexer = Lexer::new(test.input);
-            let mut parser = Parser::new(lexer);
-            let expr = match parser.parse() {
-                Ok(expr) => expr,
-                Err(_) => {
-                    // Parse error - count as expected error
-                    assert!(
-                        test.should_error,
-                        "({}) should not have errored at parse stage",
-                        test.input
-                    );
-                    continue;
-                }
-            };
-
-            let mut compiler = Compiler::new();
-            let program = match compiler.compile(&expr) {
-                Ok(_) => compiler.program(),
-                Err(_) => {
-                    // Compile error - count as expected error
-                    assert!(
-                        test.should_error,
-                        "({}) should not have errored at compile stage",
-                        test.input
-                    );
-                    continue;
-                }
-            };
-
-            let mut vm = VM::new(&program);
-            let result = vm.run(&env);
-
+            let actual = run(test.input, &env);
             if test.should_error {
                 assert!(
-                    result.is_err(),
-                    "({}) should have errored but got: {:?}",
+                    actual.is_err(),
+                    "({}): expected error but got {}",
                     test.input,
-                    result
+                    actual.unwrap()
                 );
             } else {
                 assert!(
-                    result.is_ok(),
-                    "({}) should not have errored but got: {:?}",
+                    actual.is_ok(),
+                    "({}): expected success but got error {:?}",
                     test.input,
-                    result
+                    actual.err()
                 );
             }
         }
     }
 
-    fn run(input: &str, env: &Environment) -> Object {
+    fn run(input: &str, env: &Environment) -> Result<Object, MexlError> {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
-        let expr = parser.parse().unwrap();
+        let expr = parser.parse()?;
+
         let mut compiler = Compiler::new();
-        compiler.compile(&expr).unwrap();
+        compiler.compile(&expr)?;
 
         let program = compiler.program();
         let mut vm = VM::new(&program);
-        vm.run(env).unwrap()
+        vm.run(env)
+    }
+
+    fn must_run(input: &str, env: &Environment) -> Object {
+        run(input, env).unwrap()
     }
 }
