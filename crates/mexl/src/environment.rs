@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "serde_json")]
 use crate::MexlError;
 use crate::object::{Function, NativeFn, Object};
 
@@ -33,7 +32,7 @@ impl Environment {
     }
 }
 
-#[cfg(feature = "serde_json")]
+#[cfg(feature = "serde")]
 impl Environment {
     /// Creates an environment from a JSON string.
     pub fn from_json_str(json_str: &str) -> Result<Self, MexlError> {
@@ -56,7 +55,7 @@ impl Environment {
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde_json")]
+#[cfg(feature = "serde")]
 mod tests {
     use super::*;
 
