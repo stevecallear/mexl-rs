@@ -23,12 +23,6 @@ jobs:
       - name: Build WASM
         run: cargo build -p mexl_wasi --target wasm32-unknown-unknown --release
       
-      - name: Optimize WASM
-        uses: NiklasMerz/wasm-opt-action@v2
-        with:
-          file: target/wasm-32-unknown-unknown/release/mexl_wasi.wasm
-          output: mexl_wasi.wasm
-      
       - name: Create Release 
         uses: softprops/action-gh-release@v2
         with:
