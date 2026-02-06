@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_run_invalid_env() {
-        let expr = "1 + 1";
+        let expr = "1 + 2";
         let compile_response = compile(expr);
         assert!(compile_response.success);
         let program_id = compile_response.program_id.unwrap();
