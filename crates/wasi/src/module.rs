@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use mexl::{Environment, Object, Program};
 use serde::Serialize;
 
-const RESPONSE_SERIALIZE_ERROR: &'static str =
+const RESPONSE_SERIALIZE_ERROR: &str =
     r#"{"success": false, "error": "failed to serialize response"}"#;
 
 lazy_static! {
@@ -95,7 +95,7 @@ impl RunResponse {
     }
 }
 
-/// Compiles a Mexl expression into a program, returning a response with the program ID and caching information or an error message if compilation fails.
+/// Compiles an expression into a program, returning a response with the cached program ID or an error message if compilation fails.
 pub fn compile(expr: &str) -> CompileResponse {
     let program_id = compute_hash(expr);
 
@@ -115,7 +115,7 @@ pub fn compile(expr: &str) -> CompileResponse {
     CompileResponse::success(program_id, cached)
 }
 
-/// Executes a compiled program with the given environment, returning the result or an error message.
+/// Executes the compiled program with the given environment, returning the result or an error message.
 pub fn run(program_id: u64, env_json: &str) -> RunResponse {
     let cache = PROGRAMS.lock().unwrap();
 
@@ -135,6 +135,7 @@ pub fn run(program_id: u64, env_json: &str) -> RunResponse {
     }
 }
 
+/// Computes a hash for the provided string.
 fn compute_hash(s: &str) -> u64 {
     let mut hasher = DefaultHasher::new();
     s.hash(&mut hasher);
