@@ -7,6 +7,8 @@ use crate::module::{CompileResponse, RunResponse};
 
 mod module;
 
+/// Compile the expression at the specified memory pointer.
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn compile(ptr: *mut u8, len: usize) -> u64 {
     unsafe {
@@ -21,6 +23,8 @@ pub unsafe extern "C" fn compile(ptr: *mut u8, len: usize) -> u64 {
     }
 }
 
+/// Run the compiled program, using the environment JSON at the specified memory pointer.
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn run(program_id: u64, env_ptr: *mut u8, env_len: usize) -> u64 {
     unsafe {
@@ -35,8 +39,10 @@ pub unsafe extern "C" fn run(program_id: u64, env_ptr: *mut u8, env_len: usize) 
     }
 }
 
+/// Allocate memory.
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
-pub extern "C" fn alloc(size: usize) -> *mut u8 {
+pub unsafe extern "C" fn alloc(size: usize) -> *mut u8 {
     let layout = get_u8_layout(size);
     unsafe {
         let ptr = alloc::alloc(layout);
@@ -47,18 +53,22 @@ pub extern "C" fn alloc(size: usize) -> *mut u8 {
     }
 }
 
+/// Deallocate the specified memory.
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
-pub extern "C" fn dealloc(ptr: *mut u8, size: usize) {
+pub unsafe extern "C" fn dealloc(ptr: *mut u8, size: usize) {
     let layout = get_u8_layout(size);
     unsafe {
         alloc::dealloc(ptr, layout);
     }
 }
 
+// Return the allocation layout for the size.
 fn get_u8_layout(size: usize) -> std::alloc::Layout {
     Layout::array::<u8>(size).unwrap()
 }
 
+// Pack a pointer and length u32 to the supplied string.
 fn pack_string(mut s: String) -> u64 {
     s.shrink_to_fit();
 
