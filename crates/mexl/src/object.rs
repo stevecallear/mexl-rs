@@ -1,5 +1,11 @@
 use std::{collections::HashMap, fmt};
 
+#[cfg(feature = "serde")]
+use serde::{
+    Serialize, Serializer,
+    ser::{SerializeMap, SerializeSeq},
+};
+
 use crate::MexlError;
 
 /// Represents a native function that can be invoked by the VM.
@@ -217,7 +223,7 @@ impl From<HashMap<String, Object>> for Object {
     }
 }
 
-#[cfg(feature = "serde_json")]
+#[cfg(feature = "serde")]
 impl From<serde_json::Value> for Object {
     /// Converts a Value to an Object.
     fn from(value: serde_json::Value) -> Self {
@@ -239,6 +245,37 @@ impl From<serde_json::Value> for Object {
                 let obj_map = map.into_iter().map(|(k, v)| (k, Object::from(v))).collect();
                 Object::Map(obj_map)
             }
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Object {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Object::Null => serializer.serialize_unit(),
+            Object::Integer(i) => serializer.serialize_i64(*i),
+            Object::Float(f) => serializer.serialize_f64(*f),
+            Object::String(s) => serializer.serialize_str(s),
+            Object::Boolean(b) => serializer.serialize_bool(*b),
+            Object::Array(arr) => {
+                let mut seq = serializer.serialize_seq(Some(arr.len()))?;
+                for obj in arr {
+                    seq.serialize_element(obj)?;
+                }
+                seq.end()
+            }
+            Object::Map(map) => {
+                let mut m = serializer.serialize_map(Some(map.len()))?;
+                for (k, v) in map {
+                    m.serialize_entry(k, v)?;
+                }
+                m.end()
+            }
+            Object::Function(_) => serializer.serialize_str("<function>"),
         }
     }
 }
@@ -267,7 +304,7 @@ pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
 }
 
 #[cfg(test)]
-#[cfg(feature = "serde_json")]
+#[cfg(feature = "serde")]
 mod tests {
     use super::*;
 
@@ -579,7 +616,7 @@ mod tests {
     }
 
     #[test]
-    fn test_serde_json_value_conversion() {
+    fn test_serde_json_conversion() {
         struct TestCase {
             input: serde_json::Value,
             expected: Object,
@@ -680,6 +717,49 @@ mod tests {
         for test in tests {
             let actual = Object::from(test.input);
             assert_eq!(actual, test.expected);
+        }
+    }
+
+    #[test]
+    fn test_serde_serialize() {
+        let tests: Vec<(Object, &'static str)> = vec![
+            (Object::Integer(1), "1"),
+            (Object::Float(1.5), "1.5"),
+            (Object::String("abc".into()), r#""abc""#),
+            (Object::Boolean(true), "true"),
+            (Object::Boolean(false), "false"),
+            (
+                vec![
+                    1.into(),
+                    1.5.into(),
+                    "abc".into(),
+                    true.into(),
+                    Object::Null,
+                ]
+                .into(),
+                r#"[1,1.5,"abc",true,null]"#,
+            ),
+            (
+                HashMap::from([(
+                    "x".into(),
+                    HashMap::from([("y".into(), true.into())]).into(),
+                )])
+                .into(),
+                r#"{"x":{"y":true}}"#,
+            ),
+            (Object::Null, "null"),
+            (
+                Object::Function(Function {
+                    name: "test".into(),
+                    handler: |_| unreachable!(),
+                }),
+                r#""<function>""#,
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let actual = serde_json::to_string(&input).unwrap();
+            assert_eq!(actual, expected);
         }
     }
 }
