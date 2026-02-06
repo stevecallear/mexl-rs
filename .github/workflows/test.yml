@@ -18,33 +18,23 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          targets: wasm32-unknown-unknown
 
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
 
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build WASM
+        run: cargo build -p mexl_wasi --target wasm32-unknown-unknown --release
 
       - name: Build
         run: cargo build --verbose --all-features
 
       - name: Run tests
-        run: cargo test --verbose --all-features
+        run: cargo test --workspace --verbose --all-features
 
       - name: Check formatting
         run: cargo fmt -- --check
 
       - name: Run clippy
-        run: cargo clippy --all-features -- -D warnings
+        run: cargo clippy --workspace --all-features -- -D warnings
