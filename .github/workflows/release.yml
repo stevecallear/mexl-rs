@@ -26,5 +26,6 @@ jobs:
       - name: Create Release 
         uses: softprops/action-gh-release@v2
         with:
-          files: mexl_wasi.wasm
+          fail_on_unmatched_files: true
+          files: target/wasm32-unknown-unknown/release/mexl_wasi.wasm
           generate_release_notes: true
