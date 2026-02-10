@@ -122,21 +122,21 @@ impl Object {
                 self
             )));
         }
-        Ok(is_truthy(&self).into())
+        Ok(self.is_truthy().into())
     }
-}
 
-/// Determines if an object is truthy.
-pub fn is_truthy(obj: &Object) -> bool {
-    match obj {
-        Object::Null => false,
-        Object::Integer(i) => *i != 0,
-        Object::Float(f) => *f != 0.0,
-        Object::String(s) => !s.is_empty(),
-        Object::Boolean(b) => *b,
-        Object::Array(a) => !a.is_empty(),
-        Object::Map(m) => !m.is_empty(),
-        Object::Function(_) => true,
+    /// Determines if an object is truthy.
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Object::Null => false,
+            Object::Integer(i) => *i != 0,
+            Object::Float(f) => *f != 0.0,
+            Object::String(s) => !s.is_empty(),
+            Object::Boolean(b) => *b,
+            Object::Array(a) => !a.is_empty(),
+            Object::Map(m) => !m.is_empty(),
+            Object::Function(_) => true,
+        }
     }
 }
 
@@ -508,7 +508,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let actual = is_truthy(&input);
+            let actual = input.is_truthy();
             assert_eq!(actual, expected);
         }
     }

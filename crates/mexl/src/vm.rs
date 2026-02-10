@@ -114,8 +114,8 @@ impl<'a> VM<'a> {
                         .last()
                         .ok_or(MexlError::RuntimeError("stack underflow".into()))?;
                     let should_jump = match op {
-                        Opcode::JumpTruthy => object::is_truthy(condition),
-                        Opcode::JumpNotTruthy => !object::is_truthy(condition),
+                        Opcode::JumpTruthy => condition.is_truthy(),
+                        Opcode::JumpNotTruthy => !condition.is_truthy(),
                         _ => {
                             return Err(MexlError::RuntimeError(format!(
                                 "invalid jump opcode: {:?}",
