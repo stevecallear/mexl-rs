@@ -11,6 +11,4 @@ pub enum MexlError {
     RuntimeError(String),
     #[error("Cast error: {0}")]
     CastError(String),
-    #[error("Invalid environment format: {0}")]
-    InvalidEnvironmentFormat(String),
 }
