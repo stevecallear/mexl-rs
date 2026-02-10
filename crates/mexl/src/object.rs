@@ -1,11 +1,5 @@
 use std::{collections::HashMap, fmt};
 
-#[cfg(feature = "serde")]
-use serde::{
-    Serialize, Serializer,
-    ser::{SerializeMap, SerializeSeq},
-};
-
 use crate::MexlError;
 
 /// Represents a native function that can be invoked by the VM.
@@ -249,37 +243,6 @@ impl From<serde_json::Value> for Object {
     }
 }
 
-#[cfg(feature = "serde")]
-impl Serialize for Object {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Object::Null => serializer.serialize_unit(),
-            Object::Integer(i) => serializer.serialize_i64(*i),
-            Object::Float(f) => serializer.serialize_f64(*f),
-            Object::String(s) => serializer.serialize_str(s),
-            Object::Boolean(b) => serializer.serialize_bool(*b),
-            Object::Array(arr) => {
-                let mut seq = serializer.serialize_seq(Some(arr.len()))?;
-                for obj in arr {
-                    seq.serialize_element(obj)?;
-                }
-                seq.end()
-            }
-            Object::Map(map) => {
-                let mut m = serializer.serialize_map(Some(map.len()))?;
-                for (k, v) in map {
-                    m.serialize_entry(k, v)?;
-                }
-                m.end()
-            }
-            Object::Function(_) => serializer.serialize_str("<function>"),
-        }
-    }
-}
-
 /// Unifies two operands by promoting types as necessary.
 pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
     match (&left, &right) {
@@ -300,6 +263,46 @@ pub fn unify_operands(left: Object, right: Object) -> (Object, Object) {
         (Object::Integer(l), Object::Float(_)) => (Object::Float(*l as f64), right),
         (Object::Float(_), Object::Integer(r)) => (left, Object::Float(*r as f64)),
         _ => (left, right),
+    }
+}
+
+#[cfg(feature = "serde")]
+mod ser {
+    use super::*;
+
+    use serde::{
+        Serialize, Serializer,
+        ser::{SerializeMap, SerializeSeq},
+    };
+    
+    impl Serialize for Object {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match self {
+                Object::Null => serializer.serialize_unit(),
+                Object::Integer(i) => serializer.serialize_i64(*i),
+                Object::Float(f) => serializer.serialize_f64(*f),
+                Object::String(s) => serializer.serialize_str(s),
+                Object::Boolean(b) => serializer.serialize_bool(*b),
+                Object::Array(arr) => {
+                    let mut seq = serializer.serialize_seq(Some(arr.len()))?;
+                    for obj in arr {
+                        seq.serialize_element(obj)?;
+                    }
+                    seq.end()
+                }
+                Object::Map(map) => {
+                    let mut m = serializer.serialize_map(Some(map.len()))?;
+                    for (k, v) in map {
+                        m.serialize_entry(k, v)?;
+                    }
+                    m.end()
+                }
+                Object::Function(_) => serializer.serialize_str("<function>"),
+            }
+        }
     }
 }
 
