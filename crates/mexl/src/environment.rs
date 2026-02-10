@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::MexlError;
 use crate::object::{Function, NativeFn, Object};
 
 /// Represents the environment that holds variable and function bindings.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[derive(Debug, Clone, Default)]
 pub struct Environment {
     values: HashMap<String, Object>,
@@ -32,30 +33,7 @@ impl Environment {
     }
 }
 
-#[cfg(feature = "serde")]
-impl Environment {
-    /// Creates an environment from a JSON string.
-    pub fn from_json_str(json_str: &str) -> Result<Self, MexlError> {
-        let value: serde_json::Value = serde_json::from_str(json_str)
-            .map_err(|e| MexlError::InvalidEnvironmentFormat(e.to_string()))?;
-
-        match value {
-            serde_json::Value::Object(map) => {
-                let mut env = Environment::default();
-                for (key, value) in map {
-                    env.set(&key, Object::from(value));
-                }
-                Ok(env)
-            }
-            _ => Err(MexlError::InvalidEnvironmentFormat(
-                "JSON root must be an object".into(),
-            )),
-        }
-    }
-}
-
 #[cfg(test)]
-#[cfg(feature = "serde")]
 mod tests {
     use super::*;
 
@@ -89,31 +67,25 @@ mod tests {
         assert_eq!(actual.is_none(), true);
     }
 
+    #[cfg(feature = "serde")]
     #[test]
-    fn test_environment_from_json_str() {
-        let json_str = r#"
-    {
-        "name": "test_user",
-        "age": 30,
-        "is_active": true,
-        "roles": ["user", "admin"]
-    }"#;
+    fn test_environment_serialize() {
+        let mut env = Environment::default();
+        env.set("null", Object::Null);
+        env.set("int", 1.into());
+        env.set("float", 1.5.into());
+        env.set("string", "abc".into());
+        env.set("bool", true.into());
+        env.set("array", vec![1.into(), 2.into()].into());
+        env.set("map", HashMap::from([("x".into(), true.into())]).into());
+        let actual = serde_json::to_string(&env).unwrap();
 
-        let env = Environment::from_json_str(json_str).unwrap();
-
-        assert_eq!(env.get("name").unwrap(), "test_user".into());
-        assert_eq!(env.get("age").unwrap(), 30.into());
-        assert_eq!(env.get("is_active").unwrap(), true.into());
-        assert_eq!(
-            env.get("roles").unwrap(),
-            vec!["user".into(), "admin".into()].into()
-        );
-    }
-
-    #[test]
-    fn test_environment_from_json_str_invalid() {
-        let json_str = "[1, 2, 3]"; // not an object
-        let result = Environment::from_json_str(json_str);
-        assert!(result.is_err());
+        assert!(actual.contains("\"null\":null"));
+        assert!(actual.contains("\"int\":1"));
+        assert!(actual.contains("\"float\":1.5"));
+        assert!(actual.contains("\"string\":\"abc\""));
+        assert!(actual.contains("\"bool\":true"));
+        assert!(actual.contains("\"array\":[1,2]"));
+        assert!(actual.contains("\"map\":{\"x\":true}"));
     }
 }

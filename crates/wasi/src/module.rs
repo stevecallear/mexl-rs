@@ -124,7 +124,7 @@ pub fn run(program_id: u64, env_json: &str) -> RunResponse {
         None => return RunResponse::error("program not found".to_string()),
     };
 
-    let env = match Environment::from_json_str(env_json) {
+    let env: Environment = match serde_json::from_str(env_json) {
         Ok(e) => e,
         Err(e) => return RunResponse::error(format!("failed to parse environment: {}", e)),
     };
