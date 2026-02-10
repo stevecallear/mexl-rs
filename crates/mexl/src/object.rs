@@ -274,7 +274,7 @@ mod ser {
         Serialize, Serializer,
         ser::{SerializeMap, SerializeSeq},
     };
-    
+
     impl Serialize for Object {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -306,8 +306,115 @@ mod ser {
     }
 }
 
+mod de {
+    use super::*;
+
+    use serde::{Deserialize, de::Visitor};
+
+    struct ObjectVisitor;
+
+    impl<'de> Deserialize<'de> for Object {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ObjectVisitor)
+        }
+    }
+
+    impl<'de> Visitor<'de> for ObjectVisitor {
+        type Value = Object;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a valid object")
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::Integer(v as i64))
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::Integer(v))
+        }
+
+        fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::Float(v))
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::Boolean(v))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::String(v.into()))
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::String(v))
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Object::Null)
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut obj_vec = Vec::new();
+
+            if let Some(size) = seq.size_hint() {
+                obj_vec.reserve(size);
+            };
+
+            while let Some(value) = seq.next_element()? {
+                obj_vec.push(value);
+            }
+
+            Ok(Object::Array(obj_vec))
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            let mut obj_map = HashMap::new();
+
+            if let Some(size) = map.size_hint() {
+                obj_map.reserve(size);
+            };
+
+            while let Some((key, value)) = map.next_entry()? {
+                obj_map.insert(key, value);
+            }
+
+            Ok(Object::Map(obj_map))
+        }
+    }
+}
+
 #[cfg(test)]
-#[cfg(feature = "serde")]
 mod tests {
     use super::*;
 
@@ -633,6 +740,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn test_serde_json_conversion() {
         struct TestCase {
             input: serde_json::Value,
@@ -738,6 +846,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn test_serde_serialize() {
         let tests: Vec<(Object, &'static str)> = vec![
             (Object::Integer(1), "1"),
@@ -777,6 +886,28 @@ mod tests {
         for (input, expected) in tests {
             let actual = serde_json::to_string(&input).unwrap();
             assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serde_deserialize() {
+        let tests: Vec<(&str, Object)> = vec![
+            ("1", 1.into()),
+            ("-1", (-1).into()),
+            ("1.5", 1.5.into()),
+            ("-1.5", (-1.5).into()),
+            ("\"abc\"", "abc".into()),
+            ("true", true.into()),
+            ("false", false.into()),
+            (r#"[1, true]"#, vec![1.into(), true.into()].into()),
+            (r#"{"x": true}"#, HashMap::from([("x".into(), true.into())]).into()),
+            ("null", Object::Null),
+        ];
+
+        for (input, expected) in tests {
+            let actual = serde_json::from_str::<Object>(input).unwrap();
+            assert_eq!(actual, expected)
         }
     }
 }
