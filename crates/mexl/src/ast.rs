@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::token::Token;
 
-/// Represents an expression in the abstract syntax tree (AST).
+/// Represents an expression in the abstract syntax tree.
 #[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
@@ -65,7 +65,7 @@ impl fmt::Display for Expression {
     }
 }
 
-/// Represents an identifier in the AST.
+/// Represents an identifier.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub value: String,
@@ -78,7 +78,7 @@ impl fmt::Display for Identifier {
     }
 }
 
-/// Represents a prefix expression in the AST.
+/// Represents a prefix expression.
 #[derive(Clone, Debug)]
 pub struct PrefixExpression {
     pub token: Token,
@@ -86,7 +86,7 @@ pub struct PrefixExpression {
     pub right: Box<Expression>,
 }
 
-/// Represents an infix expression in the AST.
+/// Represents an infix expression.
 #[derive(Clone, Debug)]
 pub struct InfixExpression {
     pub token: Token,
@@ -95,7 +95,7 @@ pub struct InfixExpression {
     pub right: Box<Expression>,
 }
 
-/// Represents a function call expression in the AST.
+/// Represents a function call expression.
 #[derive(Clone, Debug)]
 pub struct CallExpression {
     pub function: Box<Expression>,
@@ -108,14 +108,14 @@ pub struct IndexExpression {
     pub index: Box<Expression>,
 }
 
-/// Represents a member access expression in the AST.
+/// Represents a member access expression.
 #[derive(Clone, Debug)]
 pub struct MemberExpression {
     pub left: Box<Expression>,
     pub member: Identifier,
 }
 
-/// Represents a type cast expression in the AST.
+/// Represents a type cast expression.
 #[derive(Clone, Debug)]
 pub struct CastExpression {
     pub left: Box<Expression>,
