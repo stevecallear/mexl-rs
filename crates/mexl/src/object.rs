@@ -781,4 +781,19 @@ mod tests {
             assert_eq!(actual, expected)
         }
     }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde_deserialize_hashmap() {
+        let json = r#"{"a": 1, "b": true, "c": "abc"}"#;
+        let actual = serde_json::from_str::<HashMap<String, Object>>(json).unwrap();
+
+        let expected = HashMap::from([
+            ("a".into(), 1.into()),
+            ("b".into(), true.into()),
+            ("c".into(), "abc".into()),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
 }

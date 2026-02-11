@@ -5,7 +5,7 @@ use crate::object::{Function, NativeFn, Object};
 /// Represents the environment that holds variable and function bindings.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Environment {
     values: HashMap<String, Object>,
 }
@@ -87,5 +87,23 @@ mod tests {
         assert!(actual.contains("\"bool\":true"));
         assert!(actual.contains("\"array\":[1,2]"));
         assert!(actual.contains("\"map\":{\"x\":true}"));
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_environment_deserialize() {
+        let input = r#"{"null":null,"int":1,"float":1.5,"string":"abc","bool":true,"array":[1,2],"map":{"x":true}}"#;
+        let actual: Environment = serde_json::from_str(input).unwrap();
+
+        let mut expected = Environment::default();
+        expected.set("null", Object::Null);
+        expected.set("int", 1.into());
+        expected.set("float", 1.5.into());
+        expected.set("string", "abc".into());
+        expected.set("bool", true.into());
+        expected.set("array", vec![1.into(), 2.into()].into());
+        expected.set("map", HashMap::from([("x".into(), true.into())]).into());
+
+        assert_eq!(actual, expected);
     }
 }
