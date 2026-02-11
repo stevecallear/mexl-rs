@@ -33,7 +33,7 @@ pub enum Object {
 }
 
 impl Default for Object {
-    /// Returns the default object, which is Null.
+    /// Returns the default object (null).
     fn default() -> Self {
         Object::Null
     }
@@ -119,7 +119,7 @@ impl Object {
         Ok(self.is_truthy().into())
     }
 
-    /// Determines if an object is truthy.
+    /// Returns true if this object is truthy.
     pub fn is_truthy(&self) -> bool {
         match self {
             Object::Null => false,

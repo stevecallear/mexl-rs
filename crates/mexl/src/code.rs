@@ -8,7 +8,7 @@ use std::{
 pub struct Instructions(pub Vec<u8>);
 
 impl Default for Instructions {
-    /// Creates a default, empty Instructions instance.
+    /// Creates a default, empty instance.
     fn default() -> Self {
         Self(Vec::new())
     }
@@ -32,7 +32,7 @@ impl DerefMut for Instructions {
 }
 
 impl fmt::Display for Instructions {
-    /// Formats the Instructions as a human-readable string.
+    /// Formats the Instructions as a string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut i = 0;
         while i < self.len() {
@@ -279,7 +279,7 @@ pub fn read_operands(def: &Definition, instructions: &[u8]) -> (Vec<usize>, usiz
     (operands, offset)
 }
 
-/// Formats an instruction into a human-readable string.
+/// Formats an instruction into a string.
 fn format_instruction(def: &Definition, operands: &[usize]) -> String {
     let count = def.operand_widths.len();
     if operands.len() != count {

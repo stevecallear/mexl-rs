@@ -34,7 +34,7 @@ impl Compiler {
         }
     }
 
-    /// Finalizes and returns the compiled Program.
+    /// Returns the compiled Program.
     pub fn program(self) -> Program {
         Program {
             instructions: self.instructions,

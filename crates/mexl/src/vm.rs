@@ -106,7 +106,7 @@ impl<'a> VM<'a> {
                     self.execute_call_operation(num_args)?;
                 }
 
-                // Control Flow (peeks at stack without consuming for condition testing)
+                // Control Flow
                 Opcode::JumpTruthy | Opcode::JumpNotTruthy => {
                     let pos = self.read_usize(&mut ip);
                     let condition = self
