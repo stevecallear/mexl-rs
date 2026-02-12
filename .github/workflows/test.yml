@@ -28,12 +28,15 @@ jobs:
         run: cargo build -p mexl_wasi --target wasm32-unknown-unknown --release
 
       - name: Build
-        run: cargo build --verbose --all-features
+        run: cargo build -p mexl --verbose
+
+      - name: Build all features
+        run: cargo build -p mexl --verbose --all-features
 
       - name: Run tests
         run: cargo test --workspace --verbose --all-features
 
-      - name: Check formatting
+      - name: Run fmt
         run: cargo fmt -- --check
 
       - name: Run clippy

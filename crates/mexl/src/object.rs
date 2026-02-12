@@ -280,6 +280,7 @@ mod ser {
     }
 }
 
+#[cfg(feature = "serde")]
 mod de {
     use super::*;
 
