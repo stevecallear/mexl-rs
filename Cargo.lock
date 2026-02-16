@@ -1062,17 +1062,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mexl_wasi_unknown"
-version = "0.2.0"
-dependencies = [
- "lazy_static",
- "mexl",
- "serde",
- "serde_json",
- "wasmtime",
-]
-
-[[package]]
 name = "mio"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
