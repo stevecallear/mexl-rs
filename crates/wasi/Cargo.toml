@@ -1,0 +1,18 @@
+[package]
+name = "mexl_wasi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lazy_static = "1.5.0"
+wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
+mexl = { path = "../mexl", features = ["serde"] }
+serde_json = "1.0.149"
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:wasi"
+
+[package.metadata.component.dependencies]
