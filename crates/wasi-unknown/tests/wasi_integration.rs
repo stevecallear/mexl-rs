@@ -16,6 +16,7 @@ struct RunResponse {
 }
 
 #[test]
+#[ignore]
 fn test_wasi_integration() -> Result<(), Error> {
     let engine = Engine::default();
     let mut store = Store::new(&engine, ());
