@@ -1,0 +1,16 @@
+package mexl:wasi@0.2.0;
+
+world mexl-wasi {
+    variant value {
+        null,
+        integer(s64),
+        float(f64),
+        boolean(bool),
+        %string(string),
+        json(string),
+    }
+
+    export compile: func(expr: string) -> result<u64, string>;
+
+    export run: func(program-id: u64, env-json: string) -> result<value, string>;
+}
