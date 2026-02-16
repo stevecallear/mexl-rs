@@ -21,7 +21,7 @@ jobs:
           targets: wasm32-unknown-unknown
 
       - name: Build WASM
-        run: cargo build -p mexl_wasi --target wasm32-unknown-unknown --release
+        run: cargo build -p mexl_wasi_unknown --target wasm32-unknown-unknown --release
       
       - name: Create Release 
         uses: softprops/action-gh-release@v2
