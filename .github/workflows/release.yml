@@ -20,12 +20,20 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install cargo-component
+        run: cargo binstall cargo-component -no-confirm
+
       - name: Build WASM
-        run: cargo build -p mexl_wasi_unknown --target wasm32-unknown-unknown --release
+        run: cargo component build -p mexl_wasi --target wasm32-wasip2 --release
       
       - name: Create Release 
         uses: softprops/action-gh-release@v2
         with:
           fail_on_unmatched_files: true
-          files: target/wasm32-unknown-unknown/release/mexl_wasi.wasm
+          files: 
+            - target/wasm32-wasip2/release/mexl_wasi.wasm
+            - crates/wasi/wit/mexl-wasi.wit
           generate_release_notes: true
