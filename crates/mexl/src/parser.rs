@@ -36,7 +36,7 @@ fn get_precedence(token_type: &TokenType) -> Precedence {
         | TokenType::StartsWith
         | TokenType::EndsWith => Precedence::Comparison,
         TokenType::Plus | TokenType::Minus => Precedence::Sum,
-        TokenType::Asterisk | TokenType::Slash => Precedence::Product,
+        TokenType::Asterisk | TokenType::Slash | TokenType::Percent => Precedence::Product,
         TokenType::LParen => Precedence::Call,
         TokenType::LBracket | TokenType::Stop => Precedence::Index,
         TokenType::As => Precedence::Cast,
@@ -101,6 +101,7 @@ impl<'a> Parser<'a> {
                 | TokenType::Minus
                 | TokenType::Slash
                 | TokenType::Asterisk
+                | TokenType::Percent
                 | TokenType::And
                 | TokenType::Or
                 | TokenType::Equal
@@ -525,12 +526,15 @@ mod tests {
     }
 
     #[test]
-    fn test_left_associativity_multiply_divide() {
+    fn test_left_associativity_multiply_divide_modulo() {
         let tests = vec![
             ("a / b / c", "((a / b) / c)"),
             ("a * b * c", "((a * b) * c)"),
             ("a * b / c", "((a * b) / c)"),
             ("a / b * c", "((a / b) * c)"),
+            ("a % b % c", "((a % b) % c)"),
+            ("a * b % c", "((a * b) % c)"),
+            ("a % b * c", "((a % b) * c)"),
         ];
         assert_parser_output(tests);
     }

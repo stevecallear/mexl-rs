@@ -89,6 +89,7 @@ define_opcodes!(
     Subtract,
     Multiply,
     Divide,
+    Modulo,
     Equal,
     NotEqual,
     Less,
@@ -157,6 +158,10 @@ impl Opcode {
             },
             Opcode::Divide => Definition {
                 name: "Divide",
+                operand_widths: NO_OPERANDS,
+            },
+            Opcode::Modulo => Definition {
+                name: "Modulo",
                 operand_widths: NO_OPERANDS,
             },
             Opcode::Equal => Definition {
@@ -317,6 +322,7 @@ mod tests {
             (make(Opcode::Subtract, &[]), "0000 Subtract"),
             (make(Opcode::Multiply, &[]), "0000 Multiply"),
             (make(Opcode::Divide, &[]), "0000 Divide"),
+            (make(Opcode::Modulo, &[]), "0000 Modulo"),
             (make(Opcode::Equal, &[]), "0000 Equal"),
             (make(Opcode::NotEqual, &[]), "0000 NotEqual"),
             (make(Opcode::Less, &[]), "0000 Less"),

@@ -149,6 +149,7 @@ impl<'a> Lexer<'a> {
             b')' => Some(new_token!(TokenType::RParen, ch)),
             b'[' => Some(new_token!(TokenType::LBracket, ch)),
             b']' => Some(new_token!(TokenType::RBracket, ch)),
+            b'%' => Some(new_token!(TokenType::Percent, ch)),
             _ => None,
         }
     }
@@ -313,6 +314,7 @@ mod tests {
             ("-", new_token!(TokenType::Minus, b'-')),
             ("*", new_token!(TokenType::Asterisk, b'*')),
             ("/", new_token!(TokenType::Slash, b'/')),
+            ("%", new_token!(TokenType::Percent, b'%')),
             (".", new_token!(TokenType::Stop, b'.')),
             (",", new_token!(TokenType::Comma, b',')),
             ("(", new_token!(TokenType::LParen, b'(')),
