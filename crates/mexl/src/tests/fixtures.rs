@@ -34,6 +34,10 @@ pub fn integer_tests() -> Vec<TestCase> {
             expected: 1.into(),
         },
         TestCase {
+            input: "5 % 2",
+            expected: 1.into(),
+        },
+        TestCase {
             input: "(5 + 10 * 2 + 15 / 3) * 2 + -10",
             expected: 50.into(),
         },
@@ -65,6 +69,14 @@ pub fn float_tests() -> Vec<TestCase> {
         TestCase {
             input: "1.5 / 0.5",
             expected: 3.0.into(),
+        },
+        TestCase {
+            input: "5.5 % 2.0",
+            expected: 1.5.into(),
+        },
+        TestCase {
+            input: "5 % 2.5",
+            expected: 0.0.into(),
         },
         TestCase {
             input: "1 + 1.5",
@@ -306,6 +318,10 @@ pub fn boolean_tests() -> Vec<TestCase> {
         },
         TestCase {
             input: "2.5 ge 1",
+            expected: true.into(),
+        },
+        TestCase {
+            input: "4 % 2 == 0",
             expected: true.into(),
         },
         TestCase {

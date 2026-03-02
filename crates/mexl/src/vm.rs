@@ -68,6 +68,7 @@ impl<'a> VM<'a> {
                 | Opcode::Subtract
                 | Opcode::Multiply
                 | Opcode::Divide
+                | Opcode::Modulo
                 | Opcode::Equal
                 | Opcode::NotEqual
                 | Opcode::Less
@@ -344,6 +345,12 @@ impl<'a> VM<'a> {
                 }
                 Object::Integer(left / right)
             }
+            Opcode::Modulo => {
+                if right == 0 {
+                    return Err(MexlError::RuntimeError("modulo by zero".into()));
+                }
+                Object::Integer(left % right)
+            }
             Opcode::Equal => Object::Boolean(left == right),
             Opcode::NotEqual => Object::Boolean(left != right),
             Opcode::Less => Object::Boolean(left < right),
@@ -376,6 +383,12 @@ impl<'a> VM<'a> {
                     return Err(MexlError::RuntimeError("division by zero".into()));
                 }
                 Object::Float(left / right)
+            }
+            Opcode::Modulo => {
+                if right == 0.0 {
+                    return Err(MexlError::RuntimeError("modulo by zero".into()));
+                }
+                Object::Float(left % right)
             }
             Opcode::Equal => Object::Boolean(left == right),
             Opcode::NotEqual => Object::Boolean(left != right),
